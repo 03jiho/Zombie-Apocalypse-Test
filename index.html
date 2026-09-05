@@ -486,6 +486,17 @@ function buildShareText(type){
   return `나는 '생존자 기록부'에서 "${type.name}" 유형이었다. ${type.tagline} 당신의 생존 유형은?`;
 }
 
+async function shareResult(type){
+  const url = typeof window!=="undefined" ? window.location.href : "";
+  const text = buildShareText(type);
+  if(typeof navigator!=="undefined" && navigator.share){
+    try{ await navigator.share({title:"생존자 기록부", text, url}); return "shared"; }
+    catch(e){ return null; }
+  }
+  const ok = await copyToClipboard(`${text} ${url}`);
+  return ok ? "copied" : "failed";
+}
+
 /* =========================================================================
    HOOKS
    ========================================================================= */
@@ -729,10 +740,12 @@ function ResultScreen({tally,onRestart,onGotoCompat}){
   const stats = useMemo(()=>calculateStats(tally),[tally]);
   const [copyState,setCopyState] = useState(false);
 
-  const handleCopy = useCallback(async()=>{
-    const ok = await copyToClipboard(buildShareText(type));
-    setCopyState(ok ? "복사됨" : "복사 실패");
-    setTimeout(()=>setCopyState(false),2200);
+  const handleShare = useCallback(async()=>{
+    const result = await shareResult(type);
+    if(result==="shared") setCopyState("공유됨");
+    else if(result==="copied") setCopyState("링크 복사됨");
+    else if(result==="failed") setCopyState("복사 실패");
+    if(result) setTimeout(()=>setCopyState(false),2200);
   },[type]);
 
   return (
@@ -777,7 +790,7 @@ function ResultScreen({tally,onRestart,onGotoCompat}){
 
         <div className="mt-8 flex gap-3 flex-wrap">
           <button className="report-btn" onClick={onRestart}>기록 다시 시작</button>
-          <button className="report-btn outline" onClick={handleCopy}>{copyState || "결과 텍스트 복사"}</button>
+          <button className="report-btn outline" onClick={handleShare}>{copyState || "링크 공유"}</button>
           <button className="report-btn outline" onClick={onGotoCompat}>생존 궁합 테스트 →</button>
         </div>
       </div>
