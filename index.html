@@ -629,7 +629,7 @@ function QuizScreen({index,answered,onAnswer}){
   const handleExpire = useCallback(()=>{
     onAnswer(displayChoices[q.isWorstIndex], true);
   },[q,onAnswer,displayChoices]);
-  const secondsLeft = useCountdown(!!q.timer, 10, handleExpire, q.id);
+  const secondsLeft = useCountdown(!!q.timer, 18, handleExpire, q.id);
 
   return (
     <div className="doc-frame">
@@ -640,7 +640,7 @@ function QuizScreen({index,answered,onAnswer}){
       <div className="torn-card">
         {q.timer &&
           <div className="flex items-center gap-3 mb-5">
-            <CountdownRing seconds={secondsLeft} total={10}/>
+            <CountdownRing seconds={secondsLeft} total={18}/>
             <span className="psych-tag" style={{color:'var(--blood-bright)'}}>시간이 없다 — 곧 몸이 먼저 반응한다</span>
           </div>}
         {q.irreversible &&
