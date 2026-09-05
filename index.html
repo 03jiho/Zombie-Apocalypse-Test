@@ -29,7 +29,6 @@
 *{box-sizing:border-box;}
 html,body{background:var(--void);}
 body{
-  margin:0;
   background:var(--void);
   color:var(--bone);
   font-family:'Noto Sans KR',-apple-system,sans-serif;
@@ -119,6 +118,9 @@ h1,h2,h3{text-wrap:balance;}
   transform:translateX(2px);
 }
 .choice-btn:focus-visible{outline:2px solid var(--blood-bright);outline-offset:2px;}
+.choice-list-guard .choice-btn:hover,.choice-list-guard .choice-btn:focus-visible{
+  border-left-color:var(--border-soft);background:rgba(238,231,218,0.02);transform:none;outline:none;
+}
 .choice-idx{
   font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.82rem;
   color:var(--blood-bright);border:1px solid var(--blood);
@@ -220,25 +222,48 @@ const START_RESOURCES = {companionBond:60, companionsRemaining:0};
 const QUESTIONS = [
   {
     id:1,
+    situation:"뉴스 속보가 세 번째로 반복될 때쯤에야 실감이 났습니다. 창밖에서 비명과 경적이 뒤섞이고, 몇 집 건너 현관문이 부서지는 소리가 들립니다. 몸이 머리보다 먼저 움직입니다. 챙길 시간은 길어야 1분, 눈에 들어오는 건 서랍 속 권총 한 자루, 옷장 뒤에 세워둔 아버지의 낡은 소총, 현관 옆 산탄총, 그리고 오래전 취미로 배웠던 활과 화살통뿐입니다.",
+    choices:[
+      {label:"서랍 속 권총을 집어넣고, 가장 조용한 길로 향한다.",reason:"눈에 띄지 않는 게 우선이다. 총알도 몇 발 없다.",x:-1,y:-1,risk:"low",weaponId:"pistol"},
+      {label:"아버지의 소총을 챙겨 어깨에 멘다.",reason:"멀리서부터 확실히 끝내고 싶다. 무겁지만 믿음이 간다.",x:1,y:2,risk:"mid",weaponId:"rifle"},
+      {label:"현관 옆 산탄총을 집어 들고 문을 박찬다.",reason:"가까이 오면 확실하게 끝낸다. 망설일 이유가 없다.",x:2,y:-1,risk:"high",weaponId:"shotgun"},
+      {label:"벽에 걸린 활과 화살통을 챙긴다.",reason:"총알은 언젠가 바닥나지만, 화살은 다시 주우면 된다.",x:-2,y:-2,risk:"low",weaponId:"bow"}
+    ]
+  },
+  {
+    id:2,
+    situation:"무기를 챙겨 현관으로 향하는 그 몇 걸음 사이, 열려 있는 옷장이 눈에 들어옵니다. 고민할 시간은 없지만, 손이 먼저 무언가를 집어 듭니다.",
+    choices:[
+      {label:"가볍고 얇은 후드 하나만 걸치고 뛰쳐나간다.",reason:"몸이 가벼워야 산다. 두꺼운 옷은 발목을 잡을 뿐이다.",x:-1,y:-2,risk:"low"},
+      {label:"옷장 안쪽, 두꺼운 바이커 슈트를 껴입는다.",reason:"덥고 무겁겠지만, 물리는 것보다는 낫다.",x:0,y:0,risk:"mid"},
+      {label:"먼지 쌓인 낡은 방탄복을 걸친다.",reason:"진짜 무서운 건 좀비가 아니라, 총을 든 사람일지도 모른다.",x:1,y:-1,risk:"mid"}
+    ]
+  },
+  {
+    id:3,
     situation:"형광등 하나가 깜빡이고, 통조림을 쓸어 담던 손이 멈춥니다. 계산대 뒤에서 젖은 숨소리가 들립니다. 조심스레 다가가 보니, 한 남자가 벽에 기대앉은 채 팔뚝에 깊게 파인 잇자국을 드러내고 있습니다. 살갗은 이미 거뭇하게 죽어가고 있습니다. “아직... 아직 안 변했어요, 제발.” 목이 마르고, 심장이 귓속에서 뜁니다. 셔터 틈으로 발 끄는 소리가 하나, 둘, 셋... 점점 늘어납니다. 이 자리에 당신 말고는 아무도 없습니다. 결정은, 온전히 당신 혼자만의 몫입니다.",
     choices:[
-      {label:"망설임 없이 그의 머리를 향해 방아쇠를 당긴다.",reason:"0.1초 늦으면 다음은 우리 중 하나다. 망설일 시간 자체가 사치다.",x:2,y:1,kill:1,risk:"high",
+      {label:"망설임 없이 그의 머리를 향해 방아쇠를 당긴다.",
+        labelByWeapon:{pistol:"망설임 없이 권총을 들어 그의 머리를 향해 방아쇠를 당긴다.",rifle:"소총을 들어 조준하고, 망설임 없이 방아쇠를 당긴다.",shotgun:"산탄총을 바짝 들이대고, 망설임 없이 방아쇠를 당긴다.",bow:"활시위를 당겨, 망설임 없이 그의 미간을 향해 놓는다."},
+        reason:"0.1초 늦으면 다음은 우리 중 하나다. 망설일 시간 자체가 사치다.",x:2,y:1,kill:1,risk:"high",
         deathStat:"같은 선택을 한 생존자 중 71%가 이후에도 감정 없이 방아쇠를 당기게 되었습니다."},
       {label:"위험을 무릅쓰고, 그를 부축해 일으켜 세운다.",reason:"물린 게 곧 죽는다는 뜻은 아니다. 아직은, 아니다.",x:-2,y:1,save:1,risk:"mid"},
       {label:"아무 말 없이 몸을 돌려 셔터 반대쪽으로 먼저 빠져나간다.",reason:"설명할 시간에 한 발짝이라도 더 멀어져야 한다.",x:0,y:-2,risk:"low"}
     ]
   },
   {
-    id:2,
+    id:4,
     situation:"저 멀리, 낡은 트럭 곁에서 모닥불 하나가 흔들리며 타오릅니다. 다섯 사람 남짓이 그 주위에 둘러앉아 있고, 그중 한 사람이 당신을 알아채고는 손을 들어 보입니다. “혼자예요? 여기, 자리 있어요. 같이 갈래요?” 나머지는 말없이 당신 쪽을 바라보며 대답을 기다립니다. 이 자리에서 내리는 선택이, 앞으로의 모든 여정을 바꿔놓을 것입니다.",
     choices:[
       {label:"손짓에 응해, 그들과 함께 움직이기로 한다.",reason:"혼자보다는, 그래도 여럿이 낫다.",x:-1,y:2,companionBond:10,companionsRemaining:3,joinedParty:true,risk:"low"},
+      {label:"그 손짓을 거절한다. 대신 당신이 먼저 나서서 말합니다 — “나를 따르는 게 나을 겁니다.”",reason:"누군가는 정해야 한다면, 그게 나였으면 한다.",x:0,y:2,companionBond:10,companionsRemaining:3,joinedParty:true,leaderMode:true,risk:"mid"},
       {label:"정중히 거절하고, 계속 혼자 움직이기로 한다.",reason:"혼자인 게 편하다. 책임질 것도, 기댈 것도 없이.",x:1,y:-2,risk:"low"}
     ]
   },
   {
-    id:3,
+    id:5,
     situation:"낡은 지하 주차장, 손전등 세 개가 만들어낸 좁은 원 안에서 다섯 사람이 실랑이를 벌이고 있습니다. 나눠줄 통조림은 단 세 캔뿐입니다. 구석에서 노인이 떨리는 손으로 자신의 몫을 슬며시 밀어내고, 맞은편에서는 덩치 큰 남자가 그 몫까지 챙기려 손을 뻗으며 낮게 말합니다. “약한 놈은 어차피 오늘 밤을 못 넘겨. 나눠줘봐야 낭비야.” 다들 당신이 어느 쪽 편을 들지 지켜보고 있습니다.",
+    situationLeader:"낡은 지하 주차장, 당신이 이끄는 이들과 함께 밤을 보내던 중 통조림 세 캔을 두고 실랑이가 벌어집니다. 노인이 떨리는 손으로 자신의 몫을 밀어내고, 덩치 큰 남자가 그 몫까지 챙기려 합니다. 다들 말은 안 해도, 결국 당신이 정해주기를 기다리고 있습니다.",
     choices:[
       {label:"덩치 큰 남자의 말이 맞다며 그의 편을 들어 노인의 몫까지 넘겨준다.",reason:"동정은 배부른 사람들의 사치다. 지금은 아니다.",x:2,y:1,kill:1,companionBond:-8,risk:"mid"},
       {label:"당신이 나서서 통조림을 다시 나누고 공정하게 배분한다.",reason:"다 같이 조금씩 굶주리는 게, 혼자 배부른 것보다 낫다.",x:-1,y:2,save:1,companionBond:8,risk:"mid"},
@@ -246,19 +271,24 @@ const QUESTIONS = [
     ]
   },
   {
-    id:4,
+    id:6,
     irreversible:true,
-    situation:"고가도로 아래, 헤드라이트 두 대가 길을 막아서고, 총구 여섯 개가 전부 당신 일행을 겨눕니다. 리더로 보이는 여자의 눈이 퀭하고, 총을 쥔 손끝이 떨립니다. “물이랑 식량, 다 내려놔. 우리도 사흘째 굶었어.” 목소리가 갈라집니다. 차량 뒤편에서 아이 우는 소리가 새어 나옵니다. 동료들의 손이 무기 위에서 굳어 있고, 누구 하나만 움직여도 다음 순간은 총성입니다. 지금 여기서 무엇을 하느냐가, 이 무리와 다시 마주칠 때마다 되돌아올 것입니다.",
+    situation:"고가도로 아래, 헤드라이트 두 대가 길을 막아서고, 총구 여섯 개가 전부 당신 일행을 겨눕니다. 리더로 보이는 여자의 눈이 퀭하고, 총을 쥔 손끝이 떨립니다. “물이랑 식량, 다 내려놔. 우리도 사흘째 굶었어.” 목소리가 갈라집니다. 차량 뒤편에서 아이 우는 소리가 새어 나옵니다. 동료 민준을 비롯한 이들의 손이 무기 위에서 굳어 있고, 누구 하나만 움직여도 다음 순간은 총성입니다. 지금 여기서 무엇을 하느냐가, 이 무리와 다시 마주칠 때마다 되돌아올 것입니다.",
+    situationLeader:"고가도로 아래, 헤드라이트 두 대가 길을 막아서고, 총구 여섯 개가 전부 당신들을 겨눕니다. 리더로 보이는 여자의 눈이 퀭하고, 총을 쥔 손끝이 떨립니다. “물이랑 식량, 다 내려놔. 우리도 사흘째 굶었어.” 민준을 비롯해 당신을 따르는 이들의 눈이 일제히 당신에게 꽂힙니다. 여기서 무엇을 하느냐에 따라, 이들이 앞으로도 당신을 따를지가 갈릴 것입니다.",
     situationSolo:"고가도로 아래, 헤드라이트 두 대가 길을 막아서고, 총구 여섯 개가 전부 당신을 겨눕니다. 리더로 보이는 여자의 눈이 퀭하고, 총을 쥔 손끝이 떨립니다. “물이랑 식량, 다 내려놔. 우리도 사흘째 굶었어.” 목소리가 갈라집니다. 차량 뒤편에서 아이 우는 소리가 새어 나옵니다. 당신 편은 아무도 없고, 누구 하나만 움직여도 다음 순간은 총성입니다. 지금 여기서 무엇을 하느냐가, 이 무리와 다시 마주칠 때마다 되돌아올 것입니다.",
     choices:[
-      {label:"먼저 방아쇠를 당겨 기선을 제압한다.",reason:"저쪽이 먼저 쏘게 놔두는 건 자살이다.",x:2,y:1,kill:2,risk:"high"},
+      {label:"먼저 방아쇠를 당겨 기선을 제압한다.",
+        labelByWeapon:{pistol:"먼저 권총 방아쇠를 당겨 기선을 제압한다.",rifle:"소총으로 먼저 조준사격해 기선을 제압한다.",shotgun:"산탄총을 먼저 쏘아 기선을 제압한다.",bow:"화살을 먼저 날려 기선을 제압한다."},
+        reason:"저쪽이 먼저 쏘게 놔두는 건 자살이다.",x:2,y:1,kill:2,risk:"high"},
       {label:"물자의 절반을 조용히 내려놓고 뒤로 물러난다.",reason:"총알 한 발보다 지금 이 물이 훨씬 싸게 먹힌다.",x:-1,y:1,risk:"low"},
       {label:"동료들을 먼저 뒤로 보내고 홀로 남아 시선을 붙든다.",reason:"누군가는 시간을 벌어야 한다. 그게 나여도 된다.",x:-2,y:-2,save:1,companionBond:6,risk:"high"},
       {label:"리더의 목에 팔을 감아 인질로 붙든다.",reason:"총알 없이도 판을 뒤집을 방법은 있다.",x:1,y:2,risk:"high",
         deathStat:"인질극을 선택한 생존자 중 34%가 이후 그 무리에게 다시 쫓기게 되었습니다."}
     ],
     choicesSolo:[
-      {label:"먼저 방아쇠를 당겨 기선을 제압한다.",reason:"저쪽이 먼저 쏘게 놔두는 건 자살이다.",x:2,y:1,kill:2,risk:"high"},
+      {label:"먼저 방아쇠를 당겨 기선을 제압한다.",
+        labelByWeapon:{pistol:"먼저 권총 방아쇠를 당겨 기선을 제압한다.",rifle:"소총으로 먼저 조준사격해 기선을 제압한다.",shotgun:"산탄총을 먼저 쏘아 기선을 제압한다.",bow:"화살을 먼저 날려 기선을 제압한다."},
+        reason:"저쪽이 먼저 쏘게 놔두는 건 자살이다.",x:2,y:1,kill:2,risk:"high"},
       {label:"물자의 절반을 조용히 내려놓고 뒤로 물러난다.",reason:"총알 한 발보다 지금 이 물이 훨씬 싸게 먹힌다.",x:-1,y:1,risk:"low"},
       {label:"물러서는 척하다, 반대 방향으로 전력 질주해 도망친다.",reason:"이 몸 하나만 빼내면 된다. 뒤는 돌아보지 않는다.",x:0,y:-2,risk:"mid"},
       {label:"리더의 목에 팔을 감아 인질로 붙든다.",reason:"총알 없이도 판을 뒤집을 방법은 있다.",x:1,y:2,risk:"high",
@@ -266,12 +296,15 @@ const QUESTIONS = [
     ]
   },
   {
-    id:5,
+    id:7,
     irreversible:true,
-    situation:"폐가 마룻바닥, 랜턴 불빛 아래 지훈의 셔츠가 걷혀 있습니다. 어깨에 깊게 파인 잇자국, 핏기 가신 얼굴, 이마에 맺힌 식은땀이 한눈에 들어옵니다. “언제 물렸는지... 기억이 안 나.” 목소리가 떨립니다. 다른 동료들은 이미 뒷걸음질 치며 거리를 벌리고 있습니다. 남은 시간은 길어야 몇 시간, 변이가 시작되면 이 좁은 방 안에서 도망칠 곳은 없습니다. 지금 정하지 않으면, 다음은 당신 손이 아니라 상황이 정하게 됩니다.",
+    situation:"폐가 마룻바닥, 랜턴 불빛 아래 지훈의 셔츠가 걷혀 있습니다. 지훈은 둘째 날 밤, 무너진 마트 뒤편에서 우연히 마주쳐 함께하게 된 동료였습니다 — 말수는 적었지만, 늘 제일 먼저 망을 봐주던 사람이었습니다. 어깨에 깊게 파인 잇자국, 핏기 가신 얼굴, 이마에 맺힌 식은땀이 한눈에 들어옵니다. “언제 물렸는지... 기억이 안 나.” 목소리가 떨립니다. 다른 동료들은 이미 뒷걸음질 치며 거리를 벌리고 있습니다. 남은 시간은 길어야 몇 시간, 변이가 시작되면 이 좁은 방 안에서 도망칠 곳은 없습니다. 지금 정하지 않으면, 다음은 당신 손이 아니라 상황이 정하게 됩니다.",
+    situationLeader:"폐가 마룻바닥, 당신을 따르는 이들 중 하나인 지훈의 셔츠가 걷혀 있습니다. 어깨에 깊게 파인 잇자국, 핏기 가신 얼굴. 다른 이들은 뒷걸음질 치며 거리를 벌리고, 결정은 당신에게 넘어옵니다. 이 순간 무엇을 택하느냐가, 이들이 당신을 계속 리더로 여길지를 결정할 것입니다.",
     situationSolo:"이틀 전, 무너진 담벼락을 넘다가 손등을 긁혔습니다. 대수롭지 않게 넘겼는데, 오늘 아침 상처 주변이 이상하게 붉고 뜨겁습니다. 물린 건지 그냥 긁힌 건지, 스스로도 확신이 서지 않습니다. 물어볼 사람도, 대신 정해줄 사람도 없습니다. 남은 시간은 길어야 몇 시간일지도 모릅니다. 결정은, 오롯이 당신 혼자만의 몫입니다.",
     choices:[
-      {label:"그가 잠든 틈을 타 조용히 처리한다.",reason:"깨어서 겪는 것보단, 이게 그를 위한 자비다.",x:2,y:1,kill:1,companionsRemaining:-1,companionBond:-20,risk:"low"},
+      {label:"그가 잠든 틈을 타 조용히 처리한다.",
+        labelByWeapon:{bow:"화살을 메겨, 그가 잠든 틈을 타 조용히 숨을 끊는다."},
+        reason:"깨어서 겪는 것보단, 이게 그를 위한 자비다.",x:2,y:1,kill:1,companionsRemaining:-1,companionBond:-20,risk:"low"},
       {label:"마지막까지 그의 곁을 지키며, 변이 징후가 확실해지는 순간에만 대응하기로 한다.",reason:"아직 그의 눈에 그가 있다. 그동안은 사람으로 대한다.",x:-2,y:2,save:1,companionsRemaining:-1,companionBond:15,risk:"high"},
       {label:"그를 묶어 안전한 곳에 격리해두고 각자 흩어져 밤을 보낸다.",reason:"확신 없이 죽일 순 없다. 그렇다고 곁에 있을 수도 없다.",x:0,y:-1,companionsRemaining:-1,companionBond:-5,risk:"mid"}
     ],
@@ -282,8 +315,9 @@ const QUESTIONS = [
     ]
   },
   {
-    id:6,
+    id:8,
     situation:"녹슨 미끄럼틀 아래, 흙투성이 아이가 무릎을 끌어안고 웅크려 있습니다. 당신을 발견하자마자 벌떡 일어나 달려와 다리를 붙잡고 놓지 않습니다. “엄마가... 안 와요. 계속 기다렸는데, 안 와요.” 놀이터는 고요합니다. 바람에 그네 사슬만 낮게 삐걱입니다. 아이를 데려가면 걸음이 느려지고, 그 울음소리가 몇 블록 밖까지 무리를 끌어들일 수 있습니다. 동료들은 이미 등을 돌린 채 먼저 걷기 시작했습니다. 그 뒷모습이 점점 작아집니다.",
+    situationLeader:"녹슨 미끄럼틀 아래, 흙투성이 아이가 무릎을 끌어안고 웅크려 있습니다. 당신을 발견하자마자 벌떡 일어나 달려와 다리를 붙잡고 놓지 않습니다. “엄마가... 안 와요. 계속 기다렸는데, 안 와요.” 당신을 따르는 이들은 아무 말 없이, 당신이 어느 쪽으로 걸음을 뗄지 지켜보고 있습니다. 아이를 데려가면 걸음이 느려지고, 그 울음소리가 몇 블록 밖까지 무리를 끌어들일 수 있습니다.",
     situationSolo:"녹슨 미끄럼틀 아래, 흙투성이 아이가 무릎을 끌어안고 웅크려 있습니다. 당신을 발견하자마자 벌떡 일어나 달려와 다리를 붙잡고 놓지 않습니다. “엄마가... 안 와요. 계속 기다렸는데, 안 와요.” 놀이터는 고요합니다. 바람에 그네 사슬만 낮게 삐걱입니다. 아이를 데려가면 걸음이 느려지고, 그 울음소리가 몇 블록 밖까지 무리를 끌어들일 수 있습니다. 지금까지처럼 혼자 움직인다면, 훨씬 더 빠르고 조용하게 갈 수 있습니다.",
     choices:[
       {label:"아이를 등에 업고 그대로 따라간다.",reason:"속도 따위, 이 아이를 두고 갈 이유가 되지 않는다.",x:-2,y:2,save:1,companionsRemaining:1,companionBond:5,risk:"mid"},
@@ -291,35 +325,31 @@ const QUESTIONS = [
     ]
   },
   {
-    id:7,
+    id:9,
     irreversible:true,
-    situation:"폐공장 마당, 언제부턴가 연인이 된 소라가 당신을 향해 달려옵니다. 폐허를 함께 걷는 동안 서로에게 기대게 된, 이 여정에서 가장 가까운 사람이었습니다. 지금 그녀의 걸음은 더 이상 사람의 것이 아니고, 눈에는 아무 빛도 없습니다. 다만 손목에 채워진 낯익은 시계와 목에 남은 오래된 흉터만이, 저것이 한때 소라였다는 걸 말해줍니다. 심장이 목구멍까지 올라오고, 방아쇠에 걸린 손끝이 떨리며 땀이 뱁니다. 거리는 이제 몇 걸음, 다른 생존자들이 숨죽인 채 지켜봅니다. 지금, 당신의 손끝이 무엇을 하느냐가 남은 평생을 따라다닐 것입니다.",
-    situationSolo:"폐공장 마당, 낯선 여자가 좀비로 변해 당신을 향해 달려옵니다. 몇 시간 전까지만 해도 어딘가를 걷고 있었을, 누군가의 사람이었을 겁니다. 지금은 그저 달려드는 것 하나뿐입니다. 심장이 목구멍까지 올라오고, 방아쇠에 걸린 손끝이 떨리며 땀이 뱁니다. 거리는 이제 몇 걸음, 지켜보는 사람은 아무도 없습니다. 지금, 당신의 손끝이 무엇을 하느냐가 남은 평생을 따라다닐 것입니다.",
+    situation:"폐공장 마당, 3년을 만나온 연인 소라가 당신을 향해 달려옵니다. 좀비 사태가 터진 날 이후로 연락이 끊겼고, 살아있기만을 바라며 이 도시를 헤맸습니다. 그리고 지금, 이렇게 다시 만났습니다. 그녀의 걸음은 더 이상 사람의 것이 아니고, 눈에는 아무 빛도 없습니다. 다만 손목에 채워진 낯익은 시계와 목에 남은 오래된 흉터만이, 저것이 한때 소라였다는 걸 말해줍니다. 심장이 목구멍까지 올라오고, 방아쇠에 걸린 손끝이 떨리며 땀이 뱁니다. 거리는 이제 몇 걸음. 지금, 당신의 손끝이 무엇을 하느냐가 남은 평생을 따라다닐 것입니다.",
+    situationLeader:"폐공장 마당, 3년을 만나온 연인 소라가 당신을 향해 달려옵니다. 좀비 사태가 터진 날 이후로 연락이 끊겼고, 살아있기만을 바라며 이 도시를 헤맸습니다. 그리고 지금, 당신을 따르는 이들이 모두 지켜보는 앞에서 이렇게 다시 만났습니다. 그녀의 걸음은 더 이상 사람의 것이 아니고, 눈에는 아무 빛도 없습니다. 다만 손목에 채워진 낯익은 시계와 목에 남은 오래된 흉터만이, 저것이 한때 소라였다는 걸 말해줍니다. 여기서 당신이 무너지는 모습을 보인다면, 무리 전체의 믿음도 함께 흔들릴 것입니다.",
     choices:[
-      {label:"망설임 없이, 웃으며 그녀의 숨통을 완전히 끊는다.",reason:"이제 이런 건 아무렇지도 않다. 그게 더 무섭다는 걸, 스스로도 안다.",x:2,y:-1,kill:1,companionsRemaining:-1,companionBond:-15,risk:"mid",
+      {label:"망설임 없이, 웃으며 그녀의 숨통을 완전히 끊는다.",
+        labelByWeapon:{pistol:"망설임 없이, 웃으며 권총 방아쇠를 당겨 그녀의 숨통을 끊는다.",rifle:"망설임 없이, 웃으며 소총으로 그녀의 숨통을 끊는다.",shotgun:"망설임 없이, 웃으며 산탄총으로 그녀의 숨통을 끊는다.",bow:"망설임 없이, 웃으며 활시위를 놓아 그녀의 숨통을 끊는다."},
+        reason:"이제 이런 건 아무렇지도 않다. 그게 더 무섭다는 걸, 스스로도 안다.",x:2,y:-1,kill:1,companionBond:-15,risk:"mid",
         deathStat:"당신과 같은 선택을 한 생존자 중 63%가 이후 스스로도 무너졌습니다."},
-      {label:"눈물을 흘리며, 그녀였던 존재를 편안히 보내준다.",reason:"마지막 순간만큼은, 그녀를 사람으로 기억하고 싶다.",x:-2,y:1,kill:1,companionsRemaining:-1,companionBond:10,risk:"mid"},
-      {label:"차마 겨누지 못하고, 무기를 놓친 채 뒤돌아 뛴다.",reason:"이 손으로는, 도저히 안 된다.",x:-1,y:-2,companionsRemaining:-1,companionBond:-8,risk:"high"}
-    ],
-    choicesSolo:[
-      {label:"망설임 없이, 웃으며 그녀의 숨통을 완전히 끊는다.",reason:"이제 이런 건 아무렇지도 않다. 그게 더 무섭다는 걸, 스스로도 안다.",x:2,y:-1,kill:1,risk:"mid",
-        deathStat:"당신과 같은 선택을 한 생존자 중 63%가 이후 스스로도 무너졌습니다."},
-      {label:"떨리는 손으로, 그녀를 편안히 보내준다.",reason:"한때는 누군가의 사람이었을 것이다. 그것만으로 충분하다.",x:-2,y:1,kill:1,risk:"mid"},
-      {label:"차마 겨누지 못하고, 무기를 놓친 채 뒤돌아 뛴다.",reason:"이 손으로는, 도저히 안 된다.",x:-1,y:-2,risk:"high"}
+      {label:"눈물을 흘리며, 그녀였던 존재를 편안히 보내준다.",reason:"마지막 순간만큼은, 그녀를 사람으로 기억하고 싶다.",x:-2,y:1,kill:1,companionBond:10,risk:"mid"},
+      {label:"차마 겨누지 못하고, 무기를 놓친 채 뒤돌아 뛴다.",reason:"이 손으로는, 도저히 안 된다.",x:-1,y:-2,companionBond:-8,risk:"high"}
     ]
   },
   {
-    id:8,
+    id:10,
     situation:"무너진 경찰서 지하, 녹슨 총기 보관함의 자물쇠가 요란한 소리와 함께 부서져 내립니다. 안에는 손도 대지 않은 총알 상자 몇 개가 고스란히 남아 있습니다. 안도할 틈도 없이, 위층 복도에서 발소리가 들립니다. 사람의 발소리입니다. 낯선 생존자 무리가 그 소리를 듣고 계단을 내려오고 있습니다. 계단 어귀에서, 양쪽의 눈이 마주칩니다. 아무도 먼저 말을 꺼내지 못합니다.",
     choices:[
       {label:"서둘러 전부 챙겨 자리를 뜬다.",reason:"먼저 잡는 자가 임자다. 양보는 없다.",x:1,y:-1,risk:"mid"},
-      {label:"일부만 챙기고 나머지는 그들 몫으로 남겨둔다.",reason:"다음에 마주쳤을 때, 총구를 겨누고 싶지 않다.",x:-1,y:1,risk:"low"},
+      {label:"일부만 챙기고 나머지는 그들 몫으로 남겨둔다.",reason:"다음에 마주쳤을 때, 서로에게 무기를 겨누고 싶지 않다.",x:-1,y:1,risk:"low"},
       {label:"소음에 더 몰려들기 전에 그냥 포기하고 떠난다.",reason:"총알보다, 지금 이 계단을 벗어나는 게 먼저다.",x:0,y:-1,risk:"low"},
       {label:"지나가던 무리에게 총알 일부를 대가 없이 나눠주며 먼저 손을 내민다.",reason:"신뢰는 원래, 먼저 손해 보는 쪽에서 시작된다.",x:-2,y:2,companionBond:5,risk:"low"}
     ]
   },
   {
-    id:9,
+    id:11,
     situation:"며칠째 잡음만 뱉어내던 무전기가, 어느 밤 문득 또렷한 목소리를 토해냅니다. “거기 누구 없습니까. 안전한 곳이 있습니다.” 좌표가 이어서 흘러나오고, 그 목소리 끝에는 오랜 피로가 배어 있습니다. 진심처럼 들립니다. 하지만 이 폐허에서는, 진심과 함정을 구분할 방법이 없습니다. 스피커의 잡음이 잦아들었다 다시 차오르기를 반복합니다. 동료들이 반신반의한 얼굴로, 조용히 당신의 다음 말을 기다립니다.",
     situationSolo:"며칠째 잡음만 뱉어내던 무전기가, 어느 밤 문득 또렷한 목소리를 토해냅니다. “거기 누구 없습니까. 안전한 곳이 있습니다.” 좌표가 이어서 흘러나오고, 그 목소리 끝에는 오랜 피로가 배어 있습니다. 진심처럼 들립니다. 하지만 이 폐허에서는, 진심과 함정을 구분할 방법이 없습니다. 스피커의 잡음이 잦아들었다 다시 차오르기를 반복합니다. 상의할 사람은 아무도 없습니다. 결정도, 그 결과도 오롯이 당신의 몫입니다.",
     choices:[
@@ -330,8 +360,9 @@ const QUESTIONS = [
     ]
   },
   {
-    id:10,
+    id:12,
     situation:"버려진 진료소. 남은 약은 진통제 두 알뿐입니다. 신음하는 부상자는 셋. 다리가 완전히 꺾인 젊은 여자, 팔뚝에 옅은 잇자국이 남은 중년 남자, 부모 없이 홀로 벽에 기대 떨고 있는 아이. 세 사람의 눈이 동시에, 당신 손에 들린 약병을 쫓습니다. 창밖으로 해가 저물고 있습니다. 여기 오래 머무를수록, 위험은 조용히 쌓여갑니다.",
+    situationLeader:"버려진 진료소. 남은 약은 진통제 두 알뿐인데, 신음하는 부상자는 셋입니다. 당신을 따르는 이들이 지켜보는 앞에서, 누구를 살릴지는 당신이 정해야 합니다. 이 결정은 곧 사람들 사이에 퍼질 것입니다.",
     choices:[
       {label:"가장 회복 가능성이 높은 두 사람에게만 준다.",reason:"감정으로 나눌 여유가 없다. 살릴 수 있는 사람부터 살린다.",x:1,y:0,save:1,companionBond:-5,risk:"mid"},
       {label:"아이에게 먼저 주고, 남은 하나는 두 사람이 알아서 정하게 둔다.",reason:"저 아이만큼은, 안 된다.",x:-1,y:0,save:1,companionBond:5,risk:"mid"},
@@ -341,39 +372,45 @@ const QUESTIONS = [
     ]
   },
   {
-    id:11,
+    id:13,
     irreversible:true,
-    situation:"새벽 세 시, 부스럭거리는 소리에 눈을 뜹니다. 민준이 당신의 배낭을 뒤지고 있습니다. 손에는 아껴둔 식량과 마지막 총알 몇 발이 들려 있습니다. 고개를 든 순간 눈이 마주치고, 그는 얼어붙은 채 아무 말도 하지 못합니다. 방 안에는 서로의 숨소리만 남습니다. 이 순간의 선택은, 되돌릴 수 없습니다.",
+    situation:"새벽 세 시, 부스럭거리는 소리에 눈을 뜹니다. 민준은 다른 이들이 하나둘 사라지는 와중에도 끝까지 곁에 남아, 궂은일을 도맡아온 사람이었습니다. 그런 그가 지금, 당신의 배낭을 뒤지고 있습니다. 손에는 아껴둔 식량과 마지막 총알 몇 발이 들려 있습니다. 고개를 든 순간 눈이 마주치고, 그는 얼어붙은 채 아무 말도 하지 못합니다. 방 안에는 서로의 숨소리만 남습니다. 이 순간의 선택은, 되돌릴 수 없습니다.",
+    situationLeader:"새벽 세 시, 부스럭거리는 소리에 눈을 뜹니다. 당신을 따르는 이들 중 하나인 민준이 당신의 배낭을 뒤지고 있습니다. 다른 이들도 곧 이 사실을 알게 될 것입니다. 리더인 당신이 이걸 어떻게 처리하느냐가, 나머지 사람들에게도 본보기가 될 것입니다.",
     situationSolo:"며칠 전부터 멀지 않은 거리를 두고 따라붙던 낯선 남자가 있었습니다. 말은 거의 섞지 않았지만, 밤에는 불을 나눠 쬐고 낮에는 각자 걷는 사이가 되어 있었습니다. 새벽 세 시, 부스럭거리는 소리에 눈을 뜹니다. 그가 당신의 배낭을 뒤지고 있습니다. 손에는 아껴둔 식량과 마지막 총알 몇 발이 들려 있습니다. 고개를 든 순간 눈이 마주치고, 그는 얼어붙은 채 아무 말도 하지 못합니다. 주위에는 서로의 숨소리만 남습니다. 이 순간의 선택은, 되돌릴 수 없습니다.",
     choices:[
-      {label:"말없이 총을 겨누고 떠나라고 한다.",reason:"믿음이 깨진 자리엔, 아무것도 다시 자라지 않는다.",x:1,y:-1,companionsRemaining:-1,companionBond:-10,risk:"mid"},
+      {label:"말없이 무기를 겨누고 떠나라고 한다.",reason:"믿음이 깨진 자리엔, 아무것도 다시 자라지 않는다.",x:1,y:-1,companionsRemaining:-1,companionBond:-10,risk:"mid"},
       {label:"왜 그랬는지 먼저 묻고, 몫을 조금 더 나눠주기로 한다.",reason:"오죽했으면. 나라고 다르지 않았을지도 모른다.",x:-2,y:2,companionBond:15,risk:"low"},
       {label:"아무 말 없이 자리를 피하고, 못 본 척 넘어간다.",reason:"들추지 않는다. 다만 이제 등을 다 보이진 않는다.",x:0,y:0,companionBond:-3,risk:"low"},
-      {label:"그 자리에서 쏴 죽인다.",reason:"한 번 배신한 손은, 두 번째도 망설이지 않는다.",x:2,y:-2,kill:1,companionsRemaining:-1,companionBond:-25,risk:"high",
+      {label:"그 자리에서 쏴 죽인다.",
+        labelByWeapon:{pistol:"권총을 들어 그 자리에서 쏴 죽인다.",rifle:"소총을 겨눠 그 자리에서 쏴 죽인다.",shotgun:"산탄총으로 그 자리에서 쏴 죽인다.",bow:"화살을 메겨 그 자리에서 쏴 죽인다."},
+        reason:"한 번 배신한 손은, 두 번째도 망설이지 않는다.",x:2,y:-2,kill:1,companionsRemaining:-1,companionBond:-25,risk:"high",
         deathStat:"동료를 직접 처형한 생존자 중 81%가 이후 완전히 혼자가 되었습니다."}
     ]
   },
   {
-    id:12,
+    id:14,
     timer:true,
     isWorstIndex:2,
     situation:"동트기 직전, 찢어지는 비명이 캠프를 가릅니다. 굉음과 함께 담장이 무너지고, 그 틈으로 좀비 무리가 쏟아져 들어옵니다. 사람들이 이름을 부르며 흩어지고, 누군가는 넘어진 채 다시 일어나지 못합니다. 심장이 귓가에서 뛰고, 손끝의 감각이 사라집니다. 모두의 시선이 순간 당신에게 꽂힙니다. 지금, 숨 한 번 쉴 시간밖에 없습니다.",
+    situationLeader:"동트기 직전, 찢어지는 비명이 캠프를 가릅니다. 굉음과 함께 담장이 무너지고, 좀비 무리가 쏟아져 들어옵니다. 당신을 따르는 이들이 이름을 부르며 흩어지고, 모두의 시선이 순간 당신에게 꽂힙니다. 리더로서 지금 이 자리에서 무엇을 하느냐가, 남은 평생 이들에게 기억될 것입니다.",
     situationSolo:"묵고 있던 폐주유소 뒤편, 잠긴 셔터 하나로 밤을 버티고 있었습니다. 그런데 갑자기 셔터가 굉음과 함께 뜯겨나가고, 그 틈으로 좀비 무리가 쏟아져 들어옵니다. 도망칠 곳을 찾을 시간도 없습니다. 심장이 귓가에서 뛰고, 손끝의 감각이 사라집니다. 지금, 숨 한 번 쉴 시간밖에 없습니다.",
     choices:[
-      {label:"무너진 담장 앞을 직접 막아서며 총을 난사한다.",reason:"내가 여기서 막지 않으면, 다 뚫린다.",x:0,y:2,save:1,companionBond:10,risk:"high"},
+      {label:"무너진 담장 앞을 직접 막아서며 총을 난사한다.",
+        labelByWeapon:{pistol:"무너진 담장 앞을 직접 막아서며 권총을 쏟아붓는다.",rifle:"무너진 담장 앞을 직접 막아서며 소총을 난사한다.",shotgun:"무너진 담장 앞을 직접 막아서며 산탄총을 쏴댄다.",bow:"무너진 담장 앞을 직접 막아서며 화살을 쏘고, 쏘고, 또 쏜다."},
+        reason:"내가 여기서 막지 않으면, 다 뚫린다.",x:0,y:2,save:1,companionBond:10,risk:"high"},
       {label:"사람들에게 반대편 통로로 대피하라고 소리치며 시간을 번다.",reason:"다 막을 순 없다. 하나라도 더 도망치게 해야 한다.",x:-1,y:1,save:1,risk:"mid"},
-      {label:"혼자 가장 안전한 건물 옥상으로 먼저 뛰어올라간다.",reason:"생각할 틈이 없다. 일단 나부터 산다.",x:2,y:-2,kill:1,companionBond:-15,risk:"low",
+      {label:"혼자 가장 안전한 건물 옥상으로 먼저 뛰어올라간다.",reason:"생각할 틈이 없다. 일단 나부터 산다.",x:2,y:-2,kill:1,companionsRemaining:-1,companionBond:-15,risk:"low",
         deathStat:"공황 속에서 홀로 도망친 생존자 중 54%가 이후 완전히 고립되었습니다."}
     ],
     choicesSolo:[
       {label:"쓰러진 진열대로 셔터 틈을 막고 정면으로 맞서 싸운다.",reason:"물러설 곳이 없다면, 여기서 끝을 봐야 한다.",x:1,y:-1,kill:1,risk:"high"},
       {label:"몸을 낮춰 반대쪽 창문으로 조용히 빠져나간다.",reason:"정면으로 부딪힐 이유가 없다. 빠져나갈 틈은 늘 있다.",x:-1,y:-1,risk:"mid"},
-      {label:"몸이 얼어붙어, 그 자리에서 움직이지 못한다.",reason:"생각이 멈춘다. 다리가 말을 듣지 않는다.",x:0,y:-2,risk:"high",
+      {label:"몸이 얼어붙어, 그 자리에서 움직이지 못한다.",reason:"생각이 멈춘다. 다리가 말을 듣지 않는다.",x:0,y:-2,companionBond:-15,risk:"high",
         deathStat:"공황 속에서 그대로 얼어붙었던 생존자 중 상당수는, 그 뒤로 아무 기록도 남기지 못했습니다."}
     ]
   },
   {
-    id:13,
+    id:15,
     situation:"몇 해가 지났는지도 가늠이 안 되는 어느 밤, 낡은 손전등 아래 당신은 마침내 이 모든 기록을 마무리하기로 합니다. 페이지를 넘기던 손이 마지막 장에서 멈춥니다. 창밖은 오랜만에 고요합니다. 언젠가 누군가 이 기록을 끝까지 읽는다면, 그 사람에게 지금의 당신을 어떻게 남기고 싶습니까.",
     choices:[
       {label:"나는 살아남기 위해 최선을 다했을 뿐이라고 적는다.",reason:"그 이상도 이하도 아니다.",x:1,y:0,risk:"low"},
@@ -407,7 +444,9 @@ const RESULT_TYPES = {
   D2:{name:"이성을 놓은 포식자",tagline:"이제는 사냥감과 동료를 구분하지 않는 사람.",baseSurvival:33,
     epilogue:"당신 곁에 남은 이들은 동료가 아니라 그저 아직 잡아먹히지 않은 이들이다. 당신은 그것을 무리라고 부르지만, 아무도 오래 머물지 않는다. 다음 먹잇감이 스스로 걸어들어오길, 당신은 그저 기다린다."},
   D3:{name:"잿더미의 지배자",tagline:"잔혹함으로 무리를 지키고, 두려움으로 그들을 다스리는 사람.",baseSurvival:82,
-    epilogue:"당신이 세운 캠프는 살아남았다. 담장은 높고, 규칙은 명확하며, 어긴 자의 말로도 모두가 안다. 그곳의 모든 이는, 당신을 존경하는 만큼 두려워한다. 그리고 그 두려움 덕분에, 그들은 오늘도 살아있다."}
+    epilogue:"당신이 세운 캠프는 살아남았다. 담장은 높고, 규칙은 명확하며, 어긴 자의 말로도 모두가 안다. 그곳의 모든 이는, 당신을 존경하는 만큼 두려워한다. 그리고 그 두려움 덕분에, 그들은 오늘도 살아있다."},
+  INDECISIVE:{name:"우유부단한 리더",tagline:"정할 수 없어서, 결국 아무도 살리지 못했다.",baseSurvival:22,
+    epilogue:"당신은 사람들을 이끌겠다고 나섰다. 하지만 정작 모든 것이 무너지던 그 순간, 당신은 아무것도 정하지 못했다. 몸이 얼어붙은 사이 사람들은 각자 살길을 찾아 흩어졌고, 다시는 한자리에 모이지 않았다. 리더라는 이름만, 아무도 없는 자리에 남았다."}
 };
 
 const TOTAL_Q = QUESTIONS.length;
@@ -539,6 +578,10 @@ function useCountdown(active,durationSec,onExpire,resetKey){
    SMALL UI PIECES
    ========================================================================= */
 
+function resolveLabel(choice,weapon){
+  return (choice.labelByWeapon && choice.labelByWeapon[weapon]) || choice.label;
+}
+
 function toneForRisk(risk){
   return risk==="low" ? "var(--signal)" : risk==="high" ? "var(--blood-bright)" : "var(--amber)";
 }
@@ -577,6 +620,12 @@ function WaypointTrail({answered}){
           return <circle key={i} cx={p.x} cy={p.y} r="4.5" fill="var(--void)" stroke="var(--border-soft)" strokeWidth="1.5"/>;
         })}
       </svg>
+      <div className="flex items-center gap-3 mt-1" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.62rem',letterSpacing:'0.03em',color:'var(--dust)',opacity:0.85}}>
+        <span>지나온 선택의 위험도</span>
+        <span className="flex items-center gap-1"><i style={{width:6,height:6,borderRadius:'50%',background:'var(--signal)',display:'inline-block'}}/>안전</span>
+        <span className="flex items-center gap-1"><i style={{width:6,height:6,borderRadius:'50%',background:'var(--amber)',display:'inline-block'}}/>보통</span>
+        <span className="flex items-center gap-1"><i style={{width:6,height:6,borderRadius:'50%',background:'var(--blood-bright)',display:'inline-block'}}/>위험</span>
+      </div>
     </div>
   );
 }
@@ -608,7 +657,7 @@ function IntroScreen({onStart}){
           어느 밤, 죽은 자들이 다시 일어섰다. 처음엔 소문이었고, 다음엔 속보였고, 사흘째부터는 그냥 현실이었다.
           거리는 버려진 차량과 뜯긴 셔터로 막혔고, 밤이면 여기저기서 발을 끄는 소리와 짐승 같은 신음이 들려온다.
           이 기록부는 그 이후, 마지막까지 걸어 다니던 이들의 선택을 추적하기 위해 작성됐다.
-          열세 개의 상황이 당신 앞에 놓인다. 혼자 걸을지, 누군가와 함께할지는 당신이 정한다. 몇몇 선택은 되돌릴 수 없다.
+          열다섯 개의 상황이 당신 앞에 놓인다. 혼자 걸을지, 누군가와 함께할지는 당신이 정한다. 몇몇 선택은 되돌릴 수 없다.
           이 기록에 남는 것은 당신이 무엇을 선택했는가, 그것뿐이다. 이유는, 오직 당신만이 안다.
         </p>
         <p className="mt-3 text-sm leading-relaxed" style={{color:'var(--dust)',opacity:0.75,maxWidth:'52ch'}}>
@@ -623,13 +672,27 @@ function IntroScreen({onStart}){
 function QuizScreen({index,answered,onAnswer}){
   const q = QUESTIONS[index];
   const joinedParty = answered.some(c=>c.joinedParty);
-  const situationText = (!joinedParty && q.situationSolo) ? q.situationSolo : q.situation;
-  const displayChoices = (!joinedParty && q.choicesSolo) ? q.choicesSolo : q.choices;
+  const leaderMode = answered.some(c=>c.leaderMode);
+  const weapon = answered.find(c=>c.weaponId)?.weaponId;
+  const situationText = (leaderMode && q.situationLeader) ? q.situationLeader
+    : (!joinedParty && q.situationSolo) ? q.situationSolo
+    : q.situation;
+  const displayChoices = (leaderMode && q.choicesLeader) ? q.choicesLeader
+    : (!joinedParty && q.choicesSolo) ? q.choicesSolo
+    : q.choices;
 
   const handleExpire = useCallback(()=>{
     onAnswer(displayChoices[q.isWorstIndex], true);
   },[q,onAnswer,displayChoices]);
   const secondsLeft = useCountdown(!!q.timer, 18, handleExpire, q.id);
+
+  const [hoverArmed,setHoverArmed] = useState(false);
+  useEffect(()=>{
+    setHoverArmed(false);
+    const onMove = ()=>setHoverArmed(true);
+    window.addEventListener("mousemove",onMove,{once:true});
+    return ()=>window.removeEventListener("mousemove",onMove);
+  },[index]);
 
   return (
     <div className="doc-frame">
@@ -649,11 +712,11 @@ function QuizScreen({index,answered,onAnswer}){
             <span>이 선택은 이후 전개에 영향을 줍니다. 되돌릴 수 없습니다.</span>
           </div>}
         <p className="leading-relaxed" style={{fontSize:'1.05rem',color:'var(--bone)'}}>{situationText}</p>
-        <div className="mt-7 flex flex-col gap-3">
+        <div className={`mt-7 flex flex-col gap-3 ${hoverArmed ? "" : "choice-list-guard"}`}>
           {displayChoices.map((c,i)=>(
-            <button key={i} className="choice-btn" onClick={()=>onAnswer(c,false)}>
+            <button key={`${index}-${i}`} className="choice-btn" onClick={(e)=>{ e.currentTarget.blur(); onAnswer(c,false); }}>
               <span className="choice-idx">{String.fromCharCode(65+i)}</span>
-              <span style={{color:'var(--bone)',fontWeight:700}}>{c.label}</span>
+              <span style={{color:'var(--bone)',fontWeight:700}}>{resolveLabel(c,weapon)}</span>
             </button>
           ))}
         </div>
@@ -707,7 +770,7 @@ function RadarChart({stats}){
 }
 
 function RankingSection({myCode}){
-  const sorted = Object.entries(RESULT_TYPES).sort((a,b)=>b[1].baseSurvival-a[1].baseSurvival);
+  const sorted = Object.entries(RESULT_TYPES).filter(([code])=>code!=="INDECISIVE").sort((a,b)=>b[1].baseSurvival-a[1].baseSurvival);
   const top3 = sorted.slice(0,3);
   const myRank = sorted.findIndex(([code])=>code===myCode)+1;
   const myType = RESULT_TYPES[myCode];
@@ -748,10 +811,11 @@ function ShareCard({type,stats,tally}){
   );
 }
 
-function ResultScreen({tally,onRestart,onGotoCompat}){
-  const code = useMemo(()=>classifyCode(tally.xSum,tally.ySum),[tally]);
+function ResultScreen({tally,onRestart,onGotoCompat,specialEnding}){
+  const computedCode = useMemo(()=>classifyCode(tally.xSum,tally.ySum),[tally]);
+  const code = specialEnding || computedCode;
   const type = RESULT_TYPES[code];
-  const oppositeType = RESULT_TYPES[oppositeCode(code)];
+  const oppositeType = specialEnding ? null : RESULT_TYPES[oppositeCode(code)];
   const stats = useMemo(()=>calculateStats(tally),[tally]);
   const [copyState,setCopyState] = useState(false);
 
@@ -793,12 +857,13 @@ function ResultScreen({tally,onRestart,onGotoCompat}){
           </div>
         </div>
 
+        {oppositeType &&
         <div className="opposite-box">
           <p className="psych-tag mb-2">당신과 정반대의 생존자</p>
           <p style={{color:'var(--bone)',fontWeight:700}}>{oppositeType.name}</p>
           <p className="text-sm mt-1" style={{color:'var(--dust)'}}>{oppositeType.tagline}</p>
           <p className="text-sm mt-2" style={{color:'var(--dust)',opacity:0.8}}>이 유형인 사람에게 링크를 보내 서로의 결과를 비교해보세요.</p>
-        </div>
+        </div>}
 
         <p className="psych-tag mt-8 mb-2">최후 — 마지막 기록</p>
         <p className="epilogue">{type.epilogue}</p>
@@ -812,14 +877,14 @@ function ResultScreen({tally,onRestart,onGotoCompat}){
       <span className="stamp">판정 완료</span>
       </div>
 
-      <RankingSection myCode={code}/>
+      {!specialEnding && <RankingSection myCode={code}/>}
       <ShareCard type={type} stats={stats} tally={tally}/>
     </div>
   );
 }
 
 function CompatScreen({onBack}){
-  const codes = Object.keys(RESULT_TYPES);
+  const codes = Object.keys(RESULT_TYPES).filter(c=>c!=="INDECISIVE");
   const [a,setA] = useState(codes[0]);
   const [b,setB] = useState(codes[1]);
   const result = useMemo(()=>betrayalChance(a,b),[a,b]);
@@ -876,6 +941,7 @@ function App(){
   const [qIndex,setQIndex] = useState(0);
   const [answered,setAnswered] = useState([]);
   const [toast,setToast] = useState(null);
+  const [specialEnding,setSpecialEnding] = useState(null);
 
   const tally = useMemo(()=>tallyAnswers(answered),[answered]);
   const bg = useMemo(()=>backgroundColor(tally.xSum),[tally.xSum]);
@@ -889,6 +955,10 @@ function App(){
 
   const handleAnswer = useCallback((choice,timedOut)=>{
     const next=[...answered,choice];
+    const leaderModeNow = answered.some(c=>c.leaderMode);
+    if(timedOut && leaderModeNow && QUESTIONS[qIndex].id===14){
+      setSpecialEnding("INDECISIVE");
+    }
     setAnswered(next);
     if(choice.deathStat) setToast(choice.deathStat);
     else if(timedOut) setToast("⏱ 시간 초과 — 몸이 먼저 반응했다.");
@@ -897,7 +967,7 @@ function App(){
   },[answered,qIndex]);
 
   const handleRestart = useCallback(()=>{
-    setAnswered([]); setQIndex(0); setScreen("intro");
+    setAnswered([]); setQIndex(0); setScreen("intro"); setSpecialEnding(null);
   },[]);
 
   return (
@@ -907,7 +977,7 @@ function App(){
       <div className="stage" style={{backgroundColor: screen==="intro" ? backgroundColor(0) : bg}}>
         {screen==="intro" && <IntroScreen onStart={()=>setScreen("quiz")}/>}
         {screen==="quiz" && <QuizScreen index={qIndex} answered={answered} onAnswer={handleAnswer}/>}
-        {screen==="result" && <ResultScreen tally={tally} onRestart={handleRestart} onGotoCompat={()=>setScreen("compat")}/>}
+        {screen==="result" && <ResultScreen tally={tally} onRestart={handleRestart} onGotoCompat={()=>setScreen("compat")} specialEnding={specialEnding}/>}
         {screen==="compat" && <CompatScreen onBack={()=>setScreen("result")}/>}
       </div>
       {toast && <div className="death-toast" key={toast}>☠ {toast}</div>}
