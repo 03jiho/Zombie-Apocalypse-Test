@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>생존자 기록부</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,6 +29,7 @@
 *{box-sizing:border-box;}
 html,body{background:var(--void);}
 body{
+  margin:0;
   background:var(--void);
   color:var(--bone);
   font-family:'Noto Sans KR',-apple-system,sans-serif;
@@ -195,6 +201,8 @@ h1,h2,h3{text-wrap:balance;}
   *{animation-duration:0.01s !important;}
 }
 </style>
+</head>
+<body>
 
 <div id="root"></div>
 
@@ -910,3 +918,5 @@ function App(){
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App/>);
 </script>
+</body>
+</html>
