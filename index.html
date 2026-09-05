@@ -1,0 +1,892 @@
+<title>생존자 기록부</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+<style>
+:root{
+  --void:#0a0908;
+  --char:#17130f;
+  --char-2:#211b15;
+  --bone:#eee7da;
+  --dust:#9c9184;
+  --blood:#7d1220;
+  --blood-bright:#b3242f;
+  --signal:#4a8f6b;
+  --amber:#b3792f;
+  --border-soft:rgba(238,231,218,0.14);
+}
+
+*{box-sizing:border-box;}
+html,body{background:var(--void);}
+body{
+  background:var(--void);
+  color:var(--bone);
+  font-family:'Noto Sans KR',-apple-system,sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+.font-display{font-family:'Black Han Sans','Noto Sans KR',sans-serif;letter-spacing:0.01em;}
+.font-mono{font-family:'JetBrains Mono',ui-monospace,monospace;}
+
+h1,h2,h3{text-wrap:balance;}
+
+.grain{
+  position:fixed;inset:0;pointer-events:none;z-index:50;
+  opacity:0.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain-shift 0.7s steps(4) infinite;
+}
+@keyframes grain-shift{
+  0%{transform:translate(0,0);} 25%{transform:translate(-1%,1%);}
+  50%{transform:translate(1%,-1%);} 75%{transform:translate(-1%,-1%);}
+  100%{transform:translate(0,0);}
+}
+
+.vignette{
+  position:fixed;inset:0;pointer-events:none;z-index:40;
+  background:radial-gradient(ellipse at 50% 40%, transparent 35%, rgba(0,0,0,0.55) 100%);
+  transition:opacity 1.2s ease;
+}
+
+.stage{
+  position:relative;z-index:1;
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  padding:clamp(1rem,4vw,3rem) 1rem clamp(2rem,6vw,4rem);
+  transition:background-color 1.4s ease;
+}
+
+.doc-frame{width:100%;max-width:660px;}
+
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;font-size:0.68rem;letter-spacing:0.18em;
+  text-transform:uppercase;color:var(--dust);
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding-bottom:0.9rem;border-bottom:1px dashed var(--border-soft);
+  margin-bottom:1.6rem;
+}
+
+.torn-card{
+  background:linear-gradient(180deg,var(--char) 0%,var(--char-2) 100%);
+  clip-path:polygon(
+    0% 1.6%,4% 0%,9% 2.2%,14% 0%,19% 1.8%,25% 0.2%,31% 2.4%,37% 0%,43% 1.6%,49% 0%,
+    55% 2.2%,61% 0.3%,67% 1.8%,73% 0%,79% 2.4%,85% 0%,91% 1.6%,96% 0.2%,100% 1.8%,
+    100% 98.2%,96% 100%,91% 98.4%,85% 100%,79% 97.6%,73% 100%,67% 98.2%,61% 99.7%,55% 97.8%,49% 100%,
+    43% 98.4%,37% 100%,31% 97.6%,25% 99.8%,19% 98.2%,14% 100%,9% 97.8%,4% 100%,0% 98.4%
+  );
+  padding:2.6rem clamp(1.2rem,5vw,2.6rem) 2.8rem;
+  filter:drop-shadow(0 18px 40px rgba(0,0,0,0.55));
+  border-left:2px solid var(--border-soft);
+  border-right:2px solid var(--border-soft);
+}
+
+.wp-current-glow{
+  transform-origin:center;transform-box:fill-box;
+  animation:wp-pulse 2s ease-in-out infinite;
+}
+@keyframes wp-pulse{
+  0%,100%{transform:scale(1);opacity:0.5;}
+  50%{transform:scale(1.4);opacity:0.1;}
+}
+
+.warn-banner{
+  border:1px solid var(--blood-bright);background:rgba(125,18,32,0.12);color:var(--blood-bright);
+  font-family:'JetBrains Mono',monospace;font-size:0.76rem;line-height:1.5;letter-spacing:0.01em;
+  padding:0.75rem 0.9rem;margin-bottom:1.2rem;display:flex;gap:0.5rem;align-items:flex-start;
+}
+
+.choice-btn{
+  display:flex;gap:0.9rem;width:100%;text-align:left;
+  background:rgba(238,231,218,0.02);
+  border:1px solid var(--border-soft);border-left:3px solid var(--border-soft);
+  padding:1rem 1.1rem;cursor:pointer;transition:border-color 0.2s ease,background-color 0.2s ease,transform 0.15s ease;
+}
+.choice-btn:hover,.choice-btn:focus-visible{
+  border-left-color:var(--blood-bright);
+  background:rgba(125,18,32,0.1);
+  transform:translateX(2px);
+}
+.choice-btn:focus-visible{outline:2px solid var(--blood-bright);outline-offset:2px;}
+.choice-idx{
+  font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.82rem;
+  color:var(--blood-bright);border:1px solid var(--blood);
+  width:1.7rem;height:1.7rem;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.psych-tag{
+  font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--dust);opacity:0.8;
+}
+
+.report-btn{
+  font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;font-size:0.82rem;
+  background:var(--blood);color:var(--bone);
+  border:1px solid var(--blood-bright);padding:0.85rem 1.6rem;
+  cursor:pointer;transition:background-color 0.2s ease,transform 0.15s ease;
+}
+.report-btn:hover,.report-btn:focus-visible{background:var(--blood-bright);transform:translateY(-1px);}
+.report-btn:focus-visible{outline:2px solid var(--bone);outline-offset:2px;}
+.report-btn.outline{background:transparent;color:var(--dust);border-color:var(--border-soft);}
+.report-btn.outline:hover{color:var(--bone);border-color:var(--dust);background:transparent;}
+
+.stamp{
+  position:absolute;top:-0.6rem;right:1rem;
+  font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.75rem;
+  letter-spacing:0.12em;color:var(--blood-bright);
+  border:2px solid var(--blood-bright);padding:0.3rem 0.7rem;
+  transform:rotate(-7deg);opacity:0.9;mix-blend-mode:screen;
+  background:rgba(125,18,32,0.08);
+}
+
+.stat-tile{
+  border:1px solid var(--border-soft);padding:0.9rem 1rem;
+  display:flex;flex-direction:column;gap:0.2rem;
+}
+.stat-num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.7rem;font-variant-numeric:tabular-nums;}
+.stat-label{font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--dust);}
+
+.epilogue{
+  border-left:2px solid var(--blood);padding-left:1rem;
+  font-family:'JetBrains Mono',monospace;font-size:0.85rem;line-height:1.75;color:var(--dust);
+}
+
+.opposite-box{border:1px dashed var(--border-soft);padding:1.1rem 1.2rem;margin-top:1.8rem;}
+
+.rank-row{display:flex;align-items:center;gap:0.8rem;padding:0.6rem 0;border-bottom:1px solid var(--border-soft);}
+.rank-row:last-child{border-bottom:none;}
+.rank-num{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--blood-bright);width:1.5rem;flex-shrink:0;}
+.rank-name{flex:0 0 auto;width:8.5rem;font-weight:700;}
+.rank-bar-track{flex:1;height:6px;background:var(--border-soft);position:relative;min-width:40px;}
+.rank-bar-fill{position:absolute;inset:0 auto 0 0;height:100%;background:var(--blood-bright);}
+
+.share-card{border:1px dashed var(--dust);padding:1.8rem;position:relative;margin-top:1.6rem;}
+.share-card::before{
+  content:'✂ 캡처용';position:absolute;top:-0.7rem;left:1rem;background:var(--void);
+  padding:0 0.5rem;font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;color:var(--dust);
+}
+
+.compat-select{
+  background:var(--char);color:var(--bone);border:1px solid var(--border-soft);
+  padding:0.65rem 0.8rem;font-family:'Noto Sans KR',sans-serif;width:100%;font-size:0.95rem;
+}
+
+.death-toast{
+  position:fixed;bottom:1.1rem;right:1.1rem;left:auto;max-width:280px;
+  background:rgba(10,9,8,0.94);border:1px solid var(--blood);padding:0.7rem 0.9rem;
+  font-family:'JetBrains Mono',monospace;font-size:0.72rem;line-height:1.55;color:var(--dust);
+  z-index:60;animation:toast-in-out 3.5s ease forwards;
+}
+@keyframes toast-in-out{
+  0%{opacity:0;transform:translateY(8px);} 8%{opacity:1;transform:translateY(0);}
+  88%{opacity:1;} 100%{opacity:0;transform:translateY(-4px);}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .grain{animation:none;}
+  .stage{transition-duration:0.01s;}
+  .vignette{transition-duration:0.01s;}
+  *{animation-duration:0.01s !important;}
+}
+</style>
+
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useMemo,useCallback,useEffect,useRef} = React;
+
+/* =========================================================================
+   DATA LAYER — questions, result types, starting resources.
+   Kept as one block of plain data so new content can be dropped in
+   without touching any logic below.
+   ========================================================================= */
+
+const START_RESOURCES = {companionBond:60, companionsRemaining:0};
+
+const QUESTIONS = [
+  {
+    id:1,
+    situation:"형광등 하나가 깜빡이고, 통조림을 쓸어 담던 손이 멈춥니다. 계산대 뒤에서 젖은 숨소리가 들립니다. 조심스레 다가가 보니, 한 남자가 벽에 기대앉은 채 팔뚝에 깊게 파인 잇자국을 드러내고 있습니다. 살갗은 이미 거뭇하게 죽어가고 있습니다. “아직... 아직 안 변했어요, 제발.” 목이 마르고, 심장이 귓속에서 뜁니다. 셔터 틈으로 발 끄는 소리가 하나, 둘, 셋... 점점 늘어납니다. 이 자리에 당신 말고는 아무도 없습니다. 결정은, 온전히 당신 혼자만의 몫입니다.",
+    choices:[
+      {label:"망설임 없이 그의 머리를 향해 방아쇠를 당긴다.",reason:"0.1초 늦으면 다음은 우리 중 하나다. 망설일 시간 자체가 사치다.",x:2,y:1,kill:1,risk:"high",
+        deathStat:"같은 선택을 한 생존자 중 71%가 이후에도 감정 없이 방아쇠를 당기게 되었습니다."},
+      {label:"위험을 무릅쓰고, 그를 부축해 일으켜 세운다.",reason:"물린 게 곧 죽는다는 뜻은 아니다. 아직은, 아니다.",x:-2,y:1,save:1,risk:"mid"},
+      {label:"아무 말 없이 몸을 돌려 셔터 반대쪽으로 먼저 빠져나간다.",reason:"설명할 시간에 한 발짝이라도 더 멀어져야 한다.",x:0,y:-2,risk:"low"}
+    ]
+  },
+  {
+    id:2,
+    situation:"저 멀리, 낡은 트럭 곁에서 모닥불 하나가 흔들리며 타오릅니다. 다섯 사람 남짓이 그 주위에 둘러앉아 있고, 그중 한 사람이 당신을 알아채고는 손을 들어 보입니다. “혼자예요? 여기, 자리 있어요. 같이 갈래요?” 나머지는 말없이 당신 쪽을 바라보며 대답을 기다립니다. 이 자리에서 내리는 선택이, 앞으로의 모든 여정을 바꿔놓을 것입니다.",
+    choices:[
+      {label:"손짓에 응해, 그들과 함께 움직이기로 한다.",reason:"혼자보다는, 그래도 여럿이 낫다.",x:-1,y:2,companionBond:10,companionsRemaining:3,joinedParty:true,risk:"low"},
+      {label:"정중히 거절하고, 계속 혼자 움직이기로 한다.",reason:"혼자인 게 편하다. 책임질 것도, 기댈 것도 없이.",x:1,y:-2,risk:"low"}
+    ]
+  },
+  {
+    id:3,
+    situation:"낡은 지하 주차장, 손전등 세 개가 만들어낸 좁은 원 안에서 다섯 사람이 실랑이를 벌이고 있습니다. 나눠줄 통조림은 단 세 캔뿐입니다. 구석에서 노인이 떨리는 손으로 자신의 몫을 슬며시 밀어내고, 맞은편에서는 덩치 큰 남자가 그 몫까지 챙기려 손을 뻗으며 낮게 말합니다. “약한 놈은 어차피 오늘 밤을 못 넘겨. 나눠줘봐야 낭비야.” 다들 당신이 어느 쪽 편을 들지 지켜보고 있습니다.",
+    choices:[
+      {label:"덩치 큰 남자의 말이 맞다며 그의 편을 들어 노인의 몫까지 넘겨준다.",reason:"동정은 배부른 사람들의 사치다. 지금은 아니다.",x:2,y:1,kill:1,companionBond:-8,risk:"mid"},
+      {label:"당신이 나서서 통조림을 다시 나누고 공정하게 배분한다.",reason:"다 같이 조금씩 굶주리는 게, 혼자 배부른 것보다 낫다.",x:-1,y:2,save:1,companionBond:8,risk:"mid"},
+      {label:"논쟁에 끼어들지 않고 조용히 자리를 뜬다.",reason:"이 싸움에 낄 자격도, 낄 이유도 없다.",x:1,y:-2,risk:"low"}
+    ]
+  },
+  {
+    id:4,
+    irreversible:true,
+    situation:"고가도로 아래, 헤드라이트 두 대가 길을 막아서고, 총구 여섯 개가 전부 당신 일행을 겨눕니다. 리더로 보이는 여자의 눈이 퀭하고, 총을 쥔 손끝이 떨립니다. “물이랑 식량, 다 내려놔. 우리도 사흘째 굶었어.” 목소리가 갈라집니다. 차량 뒤편에서 아이 우는 소리가 새어 나옵니다. 동료들의 손이 무기 위에서 굳어 있고, 누구 하나만 움직여도 다음 순간은 총성입니다. 지금 여기서 무엇을 하느냐가, 이 무리와 다시 마주칠 때마다 되돌아올 것입니다.",
+    situationSolo:"고가도로 아래, 헤드라이트 두 대가 길을 막아서고, 총구 여섯 개가 전부 당신을 겨눕니다. 리더로 보이는 여자의 눈이 퀭하고, 총을 쥔 손끝이 떨립니다. “물이랑 식량, 다 내려놔. 우리도 사흘째 굶었어.” 목소리가 갈라집니다. 차량 뒤편에서 아이 우는 소리가 새어 나옵니다. 당신 편은 아무도 없고, 누구 하나만 움직여도 다음 순간은 총성입니다. 지금 여기서 무엇을 하느냐가, 이 무리와 다시 마주칠 때마다 되돌아올 것입니다.",
+    choices:[
+      {label:"먼저 방아쇠를 당겨 기선을 제압한다.",reason:"저쪽이 먼저 쏘게 놔두는 건 자살이다.",x:2,y:1,kill:2,risk:"high"},
+      {label:"물자의 절반을 조용히 내려놓고 뒤로 물러난다.",reason:"총알 한 발보다 지금 이 물이 훨씬 싸게 먹힌다.",x:-1,y:1,risk:"low"},
+      {label:"동료들을 먼저 뒤로 보내고 홀로 남아 시선을 붙든다.",reason:"누군가는 시간을 벌어야 한다. 그게 나여도 된다.",x:-2,y:-2,save:1,companionBond:6,risk:"high"},
+      {label:"리더의 목에 팔을 감아 인질로 붙든다.",reason:"총알 없이도 판을 뒤집을 방법은 있다.",x:1,y:2,risk:"high",
+        deathStat:"인질극을 선택한 생존자 중 34%가 이후 그 무리에게 다시 쫓기게 되었습니다."}
+    ],
+    choicesSolo:[
+      {label:"먼저 방아쇠를 당겨 기선을 제압한다.",reason:"저쪽이 먼저 쏘게 놔두는 건 자살이다.",x:2,y:1,kill:2,risk:"high"},
+      {label:"물자의 절반을 조용히 내려놓고 뒤로 물러난다.",reason:"총알 한 발보다 지금 이 물이 훨씬 싸게 먹힌다.",x:-1,y:1,risk:"low"},
+      {label:"물러서는 척하다, 반대 방향으로 전력 질주해 도망친다.",reason:"이 몸 하나만 빼내면 된다. 뒤는 돌아보지 않는다.",x:0,y:-2,risk:"mid"},
+      {label:"리더의 목에 팔을 감아 인질로 붙든다.",reason:"총알 없이도 판을 뒤집을 방법은 있다.",x:1,y:2,risk:"high",
+        deathStat:"인질극을 선택한 생존자 중 34%가 이후 그 무리에게 다시 쫓기게 되었습니다."}
+    ]
+  },
+  {
+    id:5,
+    irreversible:true,
+    situation:"폐가 마룻바닥, 랜턴 불빛 아래 지훈의 셔츠가 걷혀 있습니다. 어깨에 깊게 파인 잇자국, 핏기 가신 얼굴, 이마에 맺힌 식은땀이 한눈에 들어옵니다. “언제 물렸는지... 기억이 안 나.” 목소리가 떨립니다. 다른 동료들은 이미 뒷걸음질 치며 거리를 벌리고 있습니다. 남은 시간은 길어야 몇 시간, 변이가 시작되면 이 좁은 방 안에서 도망칠 곳은 없습니다. 지금 정하지 않으면, 다음은 당신 손이 아니라 상황이 정하게 됩니다.",
+    situationSolo:"이틀 전, 무너진 담벼락을 넘다가 손등을 긁혔습니다. 대수롭지 않게 넘겼는데, 오늘 아침 상처 주변이 이상하게 붉고 뜨겁습니다. 물린 건지 그냥 긁힌 건지, 스스로도 확신이 서지 않습니다. 물어볼 사람도, 대신 정해줄 사람도 없습니다. 남은 시간은 길어야 몇 시간일지도 모릅니다. 결정은, 오롯이 당신 혼자만의 몫입니다.",
+    choices:[
+      {label:"그가 잠든 틈을 타 조용히 처리한다.",reason:"깨어서 겪는 것보단, 이게 그를 위한 자비다.",x:2,y:1,kill:1,companionsRemaining:-1,companionBond:-20,risk:"low"},
+      {label:"마지막까지 그의 곁을 지키며, 변이 징후가 확실해지는 순간에만 대응하기로 한다.",reason:"아직 그의 눈에 그가 있다. 그동안은 사람으로 대한다.",x:-2,y:2,save:1,companionsRemaining:-1,companionBond:15,risk:"high"},
+      {label:"그를 묶어 안전한 곳에 격리해두고 각자 흩어져 밤을 보낸다.",reason:"확신 없이 죽일 순 없다. 그렇다고 곁에 있을 수도 없다.",x:0,y:-1,companionsRemaining:-1,companionBond:-5,risk:"mid"}
+    ],
+    choicesSolo:[
+      {label:"확신이 서지 않는 상처 부위를 그 자리에서 직접 도려낸다.",reason:"확신이 없다면, 확신이 들게 만든다.",x:2,y:-1,risk:"high"},
+      {label:"상처를 소독하고, 이틀만 더 스스로를 지켜보기로 한다.",reason:"공황보다는, 침착하게 기다리는 편이 낫다.",x:-1,y:0,risk:"mid"},
+      {label:"대수롭지 않게 여기고 그냥 다시 걷기 시작한다.",reason:"매번 이런 걸로 멈춰 설 순 없다.",x:0,y:-2,risk:"mid"}
+    ]
+  },
+  {
+    id:6,
+    situation:"녹슨 미끄럼틀 아래, 흙투성이 아이가 무릎을 끌어안고 웅크려 있습니다. 당신을 발견하자마자 벌떡 일어나 달려와 다리를 붙잡고 놓지 않습니다. “엄마가... 안 와요. 계속 기다렸는데, 안 와요.” 놀이터는 고요합니다. 바람에 그네 사슬만 낮게 삐걱입니다. 아이를 데려가면 걸음이 느려지고, 그 울음소리가 몇 블록 밖까지 무리를 끌어들일 수 있습니다. 동료들은 이미 등을 돌린 채 먼저 걷기 시작했습니다. 그 뒷모습이 점점 작아집니다.",
+    situationSolo:"녹슨 미끄럼틀 아래, 흙투성이 아이가 무릎을 끌어안고 웅크려 있습니다. 당신을 발견하자마자 벌떡 일어나 달려와 다리를 붙잡고 놓지 않습니다. “엄마가... 안 와요. 계속 기다렸는데, 안 와요.” 놀이터는 고요합니다. 바람에 그네 사슬만 낮게 삐걱입니다. 아이를 데려가면 걸음이 느려지고, 그 울음소리가 몇 블록 밖까지 무리를 끌어들일 수 있습니다. 지금까지처럼 혼자 움직인다면, 훨씬 더 빠르고 조용하게 갈 수 있습니다.",
+    choices:[
+      {label:"아이를 등에 업고 그대로 따라간다.",reason:"속도 따위, 이 아이를 두고 갈 이유가 되지 않는다.",x:-2,y:2,save:1,companionsRemaining:1,companionBond:5,risk:"mid"},
+      {label:"대피소 방향만 손가락으로 가리켜주고 돌아선다.",reason:"미안하지만, 모두를 걸 순 없다.",x:2,y:1,kill:1,risk:"low"}
+    ]
+  },
+  {
+    id:7,
+    irreversible:true,
+    situation:"폐공장 마당, 언제부턴가 연인이 된 소라가 당신을 향해 달려옵니다. 폐허를 함께 걷는 동안 서로에게 기대게 된, 이 여정에서 가장 가까운 사람이었습니다. 지금 그녀의 걸음은 더 이상 사람의 것이 아니고, 눈에는 아무 빛도 없습니다. 다만 손목에 채워진 낯익은 시계와 목에 남은 오래된 흉터만이, 저것이 한때 소라였다는 걸 말해줍니다. 심장이 목구멍까지 올라오고, 방아쇠에 걸린 손끝이 떨리며 땀이 뱁니다. 거리는 이제 몇 걸음, 다른 생존자들이 숨죽인 채 지켜봅니다. 지금, 당신의 손끝이 무엇을 하느냐가 남은 평생을 따라다닐 것입니다.",
+    situationSolo:"폐공장 마당, 낯선 여자가 좀비로 변해 당신을 향해 달려옵니다. 몇 시간 전까지만 해도 어딘가를 걷고 있었을, 누군가의 사람이었을 겁니다. 지금은 그저 달려드는 것 하나뿐입니다. 심장이 목구멍까지 올라오고, 방아쇠에 걸린 손끝이 떨리며 땀이 뱁니다. 거리는 이제 몇 걸음, 지켜보는 사람은 아무도 없습니다. 지금, 당신의 손끝이 무엇을 하느냐가 남은 평생을 따라다닐 것입니다.",
+    choices:[
+      {label:"망설임 없이, 웃으며 그녀의 숨통을 완전히 끊는다.",reason:"이제 이런 건 아무렇지도 않다. 그게 더 무섭다는 걸, 스스로도 안다.",x:2,y:-1,kill:1,companionsRemaining:-1,companionBond:-15,risk:"mid",
+        deathStat:"당신과 같은 선택을 한 생존자 중 63%가 이후 스스로도 무너졌습니다."},
+      {label:"눈물을 흘리며, 그녀였던 존재를 편안히 보내준다.",reason:"마지막 순간만큼은, 그녀를 사람으로 기억하고 싶다.",x:-2,y:1,kill:1,companionsRemaining:-1,companionBond:10,risk:"mid"},
+      {label:"차마 겨누지 못하고, 무기를 놓친 채 뒤돌아 뛴다.",reason:"이 손으로는, 도저히 안 된다.",x:-1,y:-2,companionsRemaining:-1,companionBond:-8,risk:"high"}
+    ],
+    choicesSolo:[
+      {label:"망설임 없이, 웃으며 그녀의 숨통을 완전히 끊는다.",reason:"이제 이런 건 아무렇지도 않다. 그게 더 무섭다는 걸, 스스로도 안다.",x:2,y:-1,kill:1,risk:"mid",
+        deathStat:"당신과 같은 선택을 한 생존자 중 63%가 이후 스스로도 무너졌습니다."},
+      {label:"떨리는 손으로, 그녀를 편안히 보내준다.",reason:"한때는 누군가의 사람이었을 것이다. 그것만으로 충분하다.",x:-2,y:1,kill:1,risk:"mid"},
+      {label:"차마 겨누지 못하고, 무기를 놓친 채 뒤돌아 뛴다.",reason:"이 손으로는, 도저히 안 된다.",x:-1,y:-2,risk:"high"}
+    ]
+  },
+  {
+    id:8,
+    situation:"무너진 경찰서 지하, 녹슨 총기 보관함의 자물쇠가 마침내 부서져 내립니다. 안에는 손도 대지 않은 총알 상자 몇 개가 고스란히 남아 있습니다. 안도할 틈도 없이, 위층 복도에서 발소리가 들립니다. 사람의 발소리입니다. 낯선 생존자 무리가 같은 총소리를 듣고 계단을 내려오고 있습니다. 계단 어귀에서, 양쪽의 눈이 마주칩니다. 아무도 먼저 말을 꺼내지 못합니다.",
+    choices:[
+      {label:"서둘러 전부 챙겨 자리를 뜬다.",reason:"먼저 잡는 자가 임자다. 양보는 없다.",x:1,y:-1,risk:"mid"},
+      {label:"일부만 챙기고 나머지는 그들 몫으로 남겨둔다.",reason:"다음에 마주쳤을 때, 총구를 겨누고 싶지 않다.",x:-1,y:1,risk:"low"},
+      {label:"총소리가 더 몰려들기 전에 그냥 포기하고 떠난다.",reason:"총알보다, 지금 이 계단을 벗어나는 게 먼저다.",x:0,y:-1,risk:"low"},
+      {label:"지나가던 무리에게 총알 일부를 대가 없이 나눠주며 먼저 손을 내민다.",reason:"신뢰는 원래, 먼저 손해 보는 쪽에서 시작된다.",x:-2,y:2,companionBond:5,risk:"low"}
+    ]
+  },
+  {
+    id:9,
+    situation:"며칠째 잡음만 뱉어내던 무전기가, 어느 밤 문득 또렷한 목소리를 토해냅니다. “거기 누구 없습니까. 안전한 곳이 있습니다.” 좌표가 이어서 흘러나오고, 그 목소리 끝에는 오랜 피로가 배어 있습니다. 진심처럼 들립니다. 하지만 이 폐허에서는, 진심과 함정을 구분할 방법이 없습니다. 스피커의 잡음이 잦아들었다 다시 차오르기를 반복합니다. 동료들이 반신반의한 얼굴로, 조용히 당신의 다음 말을 기다립니다.",
+    situationSolo:"며칠째 잡음만 뱉어내던 무전기가, 어느 밤 문득 또렷한 목소리를 토해냅니다. “거기 누구 없습니까. 안전한 곳이 있습니다.” 좌표가 이어서 흘러나오고, 그 목소리 끝에는 오랜 피로가 배어 있습니다. 진심처럼 들립니다. 하지만 이 폐허에서는, 진심과 함정을 구분할 방법이 없습니다. 스피커의 잡음이 잦아들었다 다시 차오르기를 반복합니다. 상의할 사람은 아무도 없습니다. 결정도, 그 결과도 오롯이 당신의 몫입니다.",
+    choices:[
+      {label:"좌표를 믿고 곧장 합류하러 이동한다.",reason:"믿을 걸 하나쯤은 남겨둬야, 계속 걸을 수 있다.",x:-1,y:2,companionBond:5,risk:"high"},
+      {label:"일단 좌표 근처까지만 혼자 정찰을 나간다.",reason:"속더라도, 나 하나로 끝나는 게 낫다.",x:-1,y:-1,risk:"mid",
+        deathStat:"단독 정찰을 선택한 생존자 중 28%가 돌아오지 못했습니다."},
+      {label:"미끼일 수 있다며 완전히 무시하고 이동 방향을 바꾼다.",reason:"의심스러운 건, 애초에 다가가지 않는 게 상책이다.",x:0,y:0,risk:"low"}
+    ]
+  },
+  {
+    id:10,
+    situation:"버려진 진료소. 남은 약은 진통제 두 알뿐입니다. 신음하는 부상자는 셋. 다리가 완전히 꺾인 젊은 여자, 팔뚝에 옅은 잇자국이 남은 중년 남자, 부모 없이 홀로 벽에 기대 떨고 있는 아이. 세 사람의 눈이 동시에, 당신 손에 들린 약병을 좇습니다. 창밖으로 해가 저물고 있습니다. 여기 오래 머무를수록, 위험은 조용히 쌓여갑니다.",
+    choices:[
+      {label:"가장 회복 가능성이 높은 두 사람에게만 준다.",reason:"감정으로 나눌 여유가 없다. 살릴 수 있는 사람부터 살린다.",x:1,y:0,save:1,companionBond:-5,risk:"mid"},
+      {label:"아이에게 먼저 주고, 남은 하나는 두 사람이 알아서 정하게 둔다.",reason:"저 아이만큼은, 안 된다.",x:-1,y:0,save:1,companionBond:5,risk:"mid"},
+      {label:"가진 약을 셋으로 쪼개어 나눠준다.",reason:"누구도 완전히 포기하고 싶지 않다.",x:-2,y:1,save:1,companionBond:8,risk:"mid"},
+      {label:"약병을 조용히 챙겨, 누구에게도 주지 않고 자리를 뜬다.",reason:"이 약이 필요한 건, 언젠가의 나일 수도 있다.",x:2,y:-2,companionBond:-10,risk:"low",
+        deathStat:"약을 챙겨 떠난 생존자 중 47%가 훗날 그 순간을 후회했다고 기록했습니다."}
+    ]
+  },
+  {
+    id:11,
+    irreversible:true,
+    situation:"새벽 세 시, 부스럭거리는 소리에 눈을 뜹니다. 민준이 당신의 배낭을 뒤지고 있습니다. 손에는 아껴둔 식량과 마지막 총알 몇 발이 들려 있습니다. 고개를 든 순간 눈이 마주치고, 그는 얼어붙은 채 아무 말도 하지 못합니다. 방 안에는 서로의 숨소리만 남습니다. 이 순간의 선택은, 되돌릴 수 없습니다.",
+    situationSolo:"며칠 전부터 멀지 않은 거리를 두고 따라붙던 낯선 남자가 있었습니다. 말은 거의 섞지 않았지만, 밤에는 불을 나눠 쬐고 낮에는 각자 걷는 사이가 되어 있었습니다. 새벽 세 시, 부스럭거리는 소리에 눈을 뜹니다. 그가 당신의 배낭을 뒤지고 있습니다. 손에는 아껴둔 식량과 마지막 총알 몇 발이 들려 있습니다. 고개를 든 순간 눈이 마주치고, 그는 얼어붙은 채 아무 말도 하지 못합니다. 주위에는 서로의 숨소리만 남습니다. 이 순간의 선택은, 되돌릴 수 없습니다.",
+    choices:[
+      {label:"말없이 총을 겨누고 떠나라고 한다.",reason:"믿음이 깨진 자리엔, 아무것도 다시 자라지 않는다.",x:1,y:-1,companionsRemaining:-1,companionBond:-10,risk:"mid"},
+      {label:"왜 그랬는지 먼저 묻고, 몫을 조금 더 나눠주기로 한다.",reason:"오죽했으면. 나라고 다르지 않았을지도 모른다.",x:-2,y:2,companionBond:15,risk:"low"},
+      {label:"아무 말 없이 자리를 피하고, 못 본 척 넘어간다.",reason:"들추지 않는다. 다만 이제 등을 다 보이진 않는다.",x:0,y:0,companionBond:-3,risk:"low"},
+      {label:"그 자리에서 쏴 죽인다.",reason:"한 번 배신한 손은, 두 번째도 망설이지 않는다.",x:2,y:-2,kill:1,companionsRemaining:-1,companionBond:-25,risk:"high",
+        deathStat:"동료를 직접 처형한 생존자 중 81%가 이후 완전히 혼자가 되었습니다."}
+    ]
+  },
+  {
+    id:12,
+    timer:true,
+    isWorstIndex:2,
+    situation:"동트기 직전, 찢어지는 비명이 캠프를 가릅니다. 굉음과 함께 담장이 무너지고, 그 틈으로 좀비 무리가 쏟아져 들어옵니다. 사람들이 이름을 부르며 흩어지고, 누군가는 넘어진 채 다시 일어나지 못합니다. 심장이 귓가에서 뛰고, 손끝의 감각이 사라집니다. 모두의 시선이 순간 당신에게 꽂힙니다. 지금, 숨 한 번 쉴 시간밖에 없습니다.",
+    situationSolo:"묵고 있던 폐주유소 뒤편, 잠긴 셔터 하나로 밤을 버티고 있었습니다. 그런데 갑자기 셔터가 굉음과 함께 무너지고, 그 틈으로 좀비 무리가 쏟아져 들어옵니다. 도망칠 곳을 찾을 시간도 없습니다. 심장이 귓가에서 뛰고, 손끝의 감각이 사라집니다. 지금, 숨 한 번 쉴 시간밖에 없습니다.",
+    choices:[
+      {label:"무너진 담장 앞을 직접 막아서며 총을 난사한다.",reason:"내가 여기서 막지 않으면, 다 뚫린다.",x:0,y:2,save:1,companionBond:10,risk:"high"},
+      {label:"사람들에게 반대편 통로로 대피하라고 소리치며 시간을 번다.",reason:"다 막을 순 없다. 하나라도 더 도망치게 해야 한다.",x:-1,y:1,save:1,risk:"mid"},
+      {label:"혼자 가장 안전한 건물 옥상으로 먼저 뛰어올라간다.",reason:"생각할 틈이 없다. 일단 나부터 산다.",x:2,y:-2,kill:1,companionBond:-15,risk:"low",
+        deathStat:"공황 속에서 홀로 도망친 생존자 중 54%가 이후 완전히 고립되었습니다."}
+    ],
+    choicesSolo:[
+      {label:"쓰러진 진열대로 셔터 틈을 막고 정면으로 맞서 싸운다.",reason:"물러설 곳이 없다면, 여기서 끝을 봐야 한다.",x:1,y:-1,kill:1,risk:"high"},
+      {label:"몸을 낮춰 반대쪽 창문으로 조용히 빠져나간다.",reason:"정면으로 부딪힐 이유가 없다. 빠져나갈 틈은 늘 있다.",x:-1,y:-1,risk:"mid"},
+      {label:"몸이 얼어붙어, 그 자리에서 움직이지 못한다.",reason:"생각이 멈춘다. 다리가 말을 듣지 않는다.",x:0,y:-2,risk:"high",
+        deathStat:"공황 속에서 그대로 얼어붙었던 생존자 중 상당수가, 이 기록 이후를 남기지 못했습니다."}
+    ]
+  },
+  {
+    id:13,
+    situation:"몇 해가 지났는지도 가늠이 안 되는 어느 밤, 낡은 손전등 아래 당신은 마침내 이 모든 기록을 마무리하기로 합니다. 페이지를 넘기던 손이 마지막 장에서 멈춥니다. 창밖은 오랜만에 고요합니다. 언젠가 누군가 이 기록을 끝까지 읽는다면, 그 사람에게 지금의 당신을 어떻게 남기고 싶습니까.",
+    choices:[
+      {label:"나는 살아남기 위해 최선을 다했을 뿐이라고 적는다.",reason:"그 이상도 이하도 아니다.",x:1,y:0,risk:"low"},
+      {label:"내가 지킨 사람들의 이름을 하나하나 적어 내려간다.",reason:"내가 누구였는지는, 그들이 말해줄 것이다.",x:-2,y:2,companionBond:5,risk:"low"},
+      {label:"아무것도 설명하지 않고, 그냥 기록을 덮는다.",reason:"설명이 필요한 사람에게는, 어차피 설명해도 소용없다.",x:0,y:-2,risk:"low"}
+    ]
+  }
+];
+
+const RESULT_TYPES = {
+  A1:{name:"침묵하는 유령",tagline:"누구도 해치지 않았지만, 누구의 곁에도 남지 않았다.",baseSurvival:48,
+    epilogue:"당신은 마지막 순간까지 총 한 번 겨누지 않았다. 발소리를 죽이는 법을 배웠고, 사람보다 그림자를 더 믿게 됐다. 아무도 당신을 기억하지 못하지만, 아무도 당신 때문에 죽지 않았다. 그것으로 충분하다고, 당신은 스스로에게 되뇐다."},
+  A2:{name:"폐허의 파수꾼",tagline:"리더가 되기를 거부했지만, 지켜야 할 사람은 늘 있었다.",baseSurvival:61,
+    epilogue:"당신은 큰 무리를 이끌 그릇은 아니었다. 하지만 눈앞의 몇 명은 끝까지 지켰다. 캠프의 중심은 되지 못했어도, 누군가의 마지막 방어선은 되어주었다. 그 정도면 됐다고, 당신은 생각한다."},
+  A3:{name:"마지막 등불지기",tagline:"모두가 어둠에 익숙해질 때, 당신만은 불빛을 놓지 않았다.",baseSurvival:58,
+    epilogue:"당신은 매일 밤 인원을 세고, 매일 아침 다시 길을 나섰다. 지친 이들이 주저앉을 때마다 손을 내밀었고, 그 손을 잡은 이들은 살아남았다. 당신이 지킨 이들의 아이가, 훗날 당신의 이름을 다시 그 아이에게 들려줄 것이다."},
+  B1:{name:"문 잠근 은둔자",tagline:"나쁜 사람은 아니다. 다만 문을 여는 법을 잊었을 뿐.",baseSurvival:44,
+    epilogue:"당신은 누구도 죽이지 않았고, 기회가 되면 도왔다. 하지만 결정적인 순간마다 문을 먼저 잠갔다. 그렇게 몇 번을 반복하자, 문 두드리는 소리는 점점 줄어들었다. 안전했지만, 조용했다."},
+  B2:{name:"가면 쓴 구원자",tagline:"당신의 선의에는 언제나 계산이 한 줄 섞여 있었다.",baseSurvival:63,
+    epilogue:"사람들은 당신에게 구조받았다고 믿었다. 틀린 말은 아니다. 다만 당신이 정말 구한 게 그들인지, 그들을 구하는 자신의 모습인지는 당신도 확신할 수 없다. 가면은 진짜 얼굴보다 오래 남았다."},
+  B3:{name:"재 속에서 피는 자",tagline:"다 타버린 자리에서도, 당신은 뭔가를 다시 심었다.",baseSurvival:66,
+    epilogue:"당신은 영웅도, 냉혈한도 아니었다. 그저 매번 조금 더 나은 쪽을 골랐을 뿐이다. 그 작은 선택들이 쌓여 작은 텃밭이 되고, 작은 공동체가 됐다. 폐허에서 자란 것치고는, 꽤 단단하다."},
+  C1:{name:"피에 젖은 계산가",tagline:"감정을 지우고 숫자로만 생존을 계산하는 사람.",baseSurvival:70,
+    epilogue:"당신은 매 순간 확률을 따졌고, 대부분 맞았다. 그 대가로 함께 걷던 얼굴들이 하나둘 사라졌다. 당신은 끝까지 살아남았다. 하지만 그 곁에는, 이제 아무도 남아 있지 않다."},
+  C2:{name:"마지막 숨을 훔치는 자",tagline:"죽어가는 이의 몫까지, 당신은 조용히 챙겼다.",baseSurvival:52,
+    epilogue:"당신은 크게 나쁜 짓을 한 적은 없다고 스스로 믿는다. 그저 남들이 망설이는 틈에 먼저 손을 뻗었을 뿐이다. 몇 번은 그것이 생존이었고, 몇 번은 그저 도둑질이었다. 그 둘을 구분하는 건, 이제 아무도 하지 않는다."},
+  C3:{name:"그림자 속 설계자",tagline:"손에 피를 묻히지 않고도, 모두를 원하는 대로 움직이는 사람.",baseSurvival:77,
+    epilogue:"당신은 총을 든 적이 거의 없다. 대신 누가 총을 들어야 하는지를 정했다. 사람들은 당신을 따랐다. 하지만 아무도, 당신을 진짜로 알지는 못했다."},
+  D1:{name:"웃는 시체 사냥꾼",tagline:"죽음 앞에서 웃을 수 있게 된, 더 이상 무서울 것이 없는 사람.",baseSurvival:39,
+    epilogue:"처음엔 당신도 손이 떨렸다. 지금은 웃는다. 그 사이 무엇을 잃었는지는 더 이상 셀 수 없다. 당신의 웃음소리가 폐허 곳곳에 울려 퍼졌다. 그것이 사람의 것인지 괴물의 것인지, 이제는 아무도 구분하지 못한다."},
+  D2:{name:"이성을 놓은 포식자",tagline:"이제는 사냥감과 동료를 구분하지 않는 사람.",baseSurvival:33,
+    epilogue:"당신 곁에 남은 이들은 동료가 아니라 그저 아직 잡아먹히지 않은 이들이다. 당신은 그것을 무리라고 부르지만, 아무도 오래 머물지 않는다. 다음 먹잇감이 스스로 걸어들어오길, 당신은 그저 기다린다."},
+  D3:{name:"잿더미의 지배자",tagline:"잔혹함으로 무리를 지키고, 두려움으로 그들을 다스리는 사람.",baseSurvival:82,
+    epilogue:"당신이 세운 캠프는 살아남았다. 담장은 높고, 규칙은 명확하며, 어긴 자의 말로도 모두가 안다. 그곳의 모든 이는, 당신을 존경하는 만큼 두려워한다. 그리고 그 두려움 덕분에, 그들은 오늘도 살아있다."}
+};
+
+const TOTAL_Q = QUESTIONS.length;
+const MAX_AXIS = TOTAL_Q * 2;
+
+/* =========================================================================
+   SCORING / RESOURCE UTILS — pure functions, no React.
+   ========================================================================= */
+
+function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
+
+function tallyAnswers(answers){
+  const base = {xSum:0,ySum:0,kills:0,saves:0, ...START_RESOURCES};
+  return answers.reduce((acc,c)=>({
+    xSum:acc.xSum+(c.x||0),
+    ySum:acc.ySum+(c.y||0),
+    kills:acc.kills+(c.kill||0),
+    saves:acc.saves+(c.save||0),
+    companionBond:clamp(acc.companionBond+(c.companionBond||0),0,100),
+    companionsRemaining:clamp(acc.companionsRemaining+(c.companionsRemaining||0),0,4)
+  }),base);
+}
+
+function normalize(sum){ return clamp(((sum+MAX_AXIS)/(MAX_AXIS*2))*100,0,100); }
+
+function classifyCode(xSum,ySum){
+  const xBand = xSum<=-8 ? "A" : xSum<=0 ? "B" : xSum<=8 ? "C" : "D";
+  const yBand = ySum<=-6 ? "1" : ySum<6 ? "2" : "3";
+  return xBand+yBand;
+}
+
+function oppositeCode(code){
+  const invX = {A:"D",B:"C",C:"B",D:"A"};
+  const invY = {1:"3",2:"2",3:"1"};
+  return invX[code[0]]+invY[code[1]];
+}
+
+function calculateStats(tally){
+  const {xSum,ySum,kills,saves,companionBond,companionsRemaining} = tally;
+  const normX = normalize(xSum);
+  const normY = normalize(ySum);
+  return {
+    survival: Math.round(clamp(28 + normX*0.22 + normY*0.3 + companionsRemaining*7 + (saves-kills)*1.2, 4, 100)),
+    humanity: Math.round(clamp(100 - normX - kills*2 + saves*2, 0, 100)),
+    charisma: Math.round(clamp(normY*0.35 + (Math.abs(xSum)/MAX_AXIS)*100*0.25 + companionBond*0.35, 0, 100)),
+    cruelty: Math.round(normX),
+    trust: Math.round(clamp(companionBond, 0, 100))
+  };
+}
+
+function backgroundColor(xSum){
+  const t = clamp((xSum + MAX_AXIS)/(MAX_AXIS*2), 0, 1);
+  const cool=[10,9,8], mid=[20,17,14], hot=[42,7,9];
+  const lerp=(a,b,f)=>Math.round(a+(b-a)*f);
+  let c;
+  if(t<=0.5){ const f=t/0.5; c=cool.map((v,i)=>lerp(v,mid[i],f)); }
+  else{ const f=(t-0.5)/0.5; c=mid.map((v,i)=>lerp(v,hot[i],f)); }
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function betrayalChance(codeA,codeB){
+  const xVal={A:0,B:1,C:2,D:3}, yVal={1:0,2:1,3:2};
+  const dx = Math.abs(xVal[codeA[0]]-xVal[codeB[0]]);
+  const dy = Math.abs(yVal[codeA[1]]-yVal[codeB[1]]);
+  const base = dx*18 + dy*10;
+  const seed = codeA.charCodeAt(0)*31 + codeA.charCodeAt(1) + codeB.charCodeAt(0)*17 + codeB.charCodeAt(1);
+  return clamp(Math.round(base + (seed%15)), 3, 97);
+}
+
+async function copyToClipboard(text){
+  try{ await navigator.clipboard.writeText(text); return true; }
+  catch(e){
+    try{
+      const ta=document.createElement("textarea");
+      ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
+      return true;
+    }catch(e2){ return false; }
+  }
+}
+
+function buildShareText(type){
+  return `나는 '생존자 기록부'에서 "${type.name}" 유형이었다. ${type.tagline} 당신의 생존 유형은?`;
+}
+
+/* =========================================================================
+   HOOKS
+   ========================================================================= */
+
+function useCountdown(active,durationSec,onExpire,resetKey){
+  const [secondsLeft,setSecondsLeft] = useState(durationSec);
+  const expireRef = useRef(onExpire);
+  expireRef.current = onExpire;
+  useEffect(()=>{
+    if(!active) return;
+    setSecondsLeft(durationSec);
+    const iv = setInterval(()=>{
+      setSecondsLeft(s=>{
+        if(s<=1){ clearInterval(iv); expireRef.current(); return 0; }
+        return s-1;
+      });
+    },1000);
+    return ()=>clearInterval(iv);
+  },[active,durationSec,resetKey]);
+  return secondsLeft;
+}
+
+/* =========================================================================
+   SMALL UI PIECES
+   ========================================================================= */
+
+function toneForRisk(risk){
+  return risk==="low" ? "var(--signal)" : risk==="high" ? "var(--blood-bright)" : "var(--amber)";
+}
+
+function WaypointTrail({answered}){
+  const segs = TOTAL_Q;
+  const answeredCount = answered.length;
+  const w = 320, h = 46;
+  const marginX = 20;
+  const step = (w - marginX*2) / (segs-1);
+  const points = Array.from({length:segs}).map((_,i)=>({
+    x: marginX + step*i,
+    y: h/2 + Math.sin(i*1.15)*11
+  }));
+  const remaining = points.slice(answeredCount);
+  return (
+    <div aria-label={`여정 진행: ${segs}개 갈림길 중 ${answeredCount+1}번째`}>
+      <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} role="presentation">
+        {remaining.length>1 &&
+          <polyline points={remaining.map(p=>`${p.x},${p.y}`).join(" ")}
+            fill="none" stroke="var(--border-soft)" strokeWidth="2" strokeDasharray="1 7" strokeLinecap="round"/>}
+        {Array.from({length:answeredCount}).map((_,i)=>{
+          const tone = toneForRisk(answered[i].risk);
+          const a = points[i], b = points[i+1];
+          return <line key={`seg${i}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+            stroke={tone} strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round"/>;
+        })}
+        {points.map((p,i)=>{
+          if(i<answeredCount) return <circle key={i} cx={p.x} cy={p.y} r="5.5" fill={toneForRisk(answered[i].risk)}/>;
+          if(i===answeredCount) return (
+            <g key={i}>
+              <circle className="wp-current-glow" cx={p.x} cy={p.y} r="10" fill="var(--dust)"/>
+              <circle cx={p.x} cy={p.y} r="6" fill="var(--bone)"/>
+            </g>
+          );
+          return <circle key={i} cx={p.x} cy={p.y} r="4.5" fill="var(--void)" stroke="var(--border-soft)" strokeWidth="1.5"/>;
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function CountdownRing({seconds,total}){
+  const r=18, circ=2*Math.PI*r;
+  const pct = seconds/total;
+  return (
+    <svg width="46" height="46" viewBox="0 0 46 46" role="timer" aria-label={`남은 시간 ${seconds}초`}>
+      <circle cx="23" cy="23" r={r} fill="none" stroke="var(--border-soft)" strokeWidth="4"/>
+      <circle cx="23" cy="23" r={r} fill="none" stroke="var(--blood-bright)" strokeWidth="4"
+        strokeDasharray={circ} strokeDashoffset={circ*(1-pct)} strokeLinecap="round"
+        transform="rotate(-90 23 23)" style={{transition:"stroke-dashoffset 1s linear"}}/>
+      <text x="23" y="28" textAnchor="middle" fontFamily="'JetBrains Mono',monospace" fontSize="16" fontWeight="700" fill="var(--bone)">{seconds}</text>
+    </svg>
+  );
+}
+
+function IntroScreen({onStart}){
+  return (
+    <div className="doc-frame">
+      <div className="eyebrow">
+        <span>생존자 연합 // 현장 기록보관소</span>
+        <span>기록번호 2026-09-05</span>
+      </div>
+      <div className="torn-card">
+        <p className="font-mono text-xs mb-4" style={{color:'var(--blood-bright)',letterSpacing:'0.15em'}}>수거된 개인 기록</p>
+        <h1 className="font-display" style={{fontSize:'clamp(2.4rem,8vw,3.6rem)',lineHeight:1.05,color:'var(--bone)'}}>생존자 기록부</h1>
+        <p className="mt-4 leading-relaxed" style={{color:'var(--dust)',maxWidth:'52ch'}}>
+          어느 밤, 죽은 자들이 다시 일어섰다. 처음엔 소문이었고, 다음엔 속보였고, 사흘째부터는 그냥 현실이었다.
+          거리는 무너진 차량과 뜯긴 셔터로 막혔고, 밤이면 여기저기서 발을 끄는 소리와 짐승 같은 신음이 들려온다.
+          이 기록부는 그 이후, 마지막까지 걸어 다니던 이들의 선택을 추적하기 위해 작성됐다.
+          열세 개의 상황이 당신 앞에 놓인다. 동료의 신뢰는 유한하고, 몇몇 선택은 되돌릴 수 없다.
+          무엇을 할지, 그리고 <em>왜</em> 그렇게 하는지 — 두 가지 모두를 기록에 남겨야 한다.
+        </p>
+        <p className="mt-3 text-sm leading-relaxed" style={{color:'var(--dust)',opacity:0.75,maxWidth:'52ch'}}>
+          ※ 본 기록은 감염 사태로 인한 좀비 아포칼립스를 배경으로 한 가상의 상황극이며, 폭력적 상상 묘사가 포함되어 있습니다.
+        </p>
+        <button className="report-btn mt-8" onClick={onStart}>기록 시작 →</button>
+      </div>
+    </div>
+  );
+}
+
+function QuizScreen({index,answered,onAnswer}){
+  const q = QUESTIONS[index];
+  const joinedParty = answered.some(c=>c.joinedParty);
+  const situationText = (!joinedParty && q.situationSolo) ? q.situationSolo : q.situation;
+  const displayChoices = (!joinedParty && q.choicesSolo) ? q.choicesSolo : q.choices;
+
+  const handleExpire = useCallback(()=>{
+    onAnswer(displayChoices[q.isWorstIndex], true);
+  },[q,onAnswer,displayChoices]);
+  const secondsLeft = useCountdown(!!q.timer, 10, handleExpire, q.id);
+
+  return (
+    <div className="doc-frame">
+      <div className="eyebrow">
+        <span>기록 {String(index+1).padStart(2,'0')} / {String(TOTAL_Q).padStart(2,'0')}</span>
+      </div>
+      <div className="mb-6"><WaypointTrail answered={answered}/></div>
+      <div className="torn-card">
+        {q.timer &&
+          <div className="flex items-center gap-3 mb-5">
+            <CountdownRing seconds={secondsLeft} total={10}/>
+            <span className="psych-tag" style={{color:'var(--blood-bright)'}}>시간이 없다 — 곧 몸이 먼저 반응한다</span>
+          </div>}
+        {q.irreversible &&
+          <div className="warn-banner">
+            <span>⚠</span>
+            <span>이 선택은 이후 전개에 영향을 줍니다. 되돌릴 수 없습니다.</span>
+          </div>}
+        <p className="leading-relaxed" style={{fontSize:'1.05rem',color:'var(--bone)'}}>{situationText}</p>
+        <div className="mt-7 flex flex-col gap-3">
+          {displayChoices.map((c,i)=>(
+            <button key={i} className="choice-btn" onClick={()=>onAnswer(c,false)}>
+              <span className="choice-idx">{String.fromCharCode(65+i)}</span>
+              <span style={{color:'var(--bone)',fontWeight:700}}>{c.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   RESULT-PAGE PIECES
+   ========================================================================= */
+
+function RadarChart({stats}){
+  const axes=[
+    {label:"생존확률",key:"survival"},
+    {label:"카리스마",key:"charisma"},
+    {label:"신뢰도",key:"trust"},
+    {label:"잔혹함",key:"cruelty"},
+    {label:"인간성",key:"humanity"}
+  ];
+  const n=axes.length;
+  const w=300,h=296,cx=150,cy=146,r=74;
+  const angleFor=i=>270+i*(360/n);
+  const pt=(deg,radius)=>{const rad=deg*Math.PI/180; return [cx+radius*Math.cos(rad), cy+radius*Math.sin(rad)];};
+  const rings=[0.25,0.5,0.75,1];
+  const dataPoints = axes.map((a,i)=>pt(angleFor(i),(stats[a.key]/100)*r));
+  const dataPath = dataPoints.map(p=>p.join(",")).join(" ");
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" role="img" aria-label="생존확률, 카리스마, 신뢰도, 잔혹함, 인간성 능력치 레이더 차트">
+      {rings.map((f,i)=>(
+        <polygon key={i} points={axes.map((a,j)=>pt(angleFor(j),r*f).join(",")).join(" ")}
+          fill="none" stroke="var(--border-soft)" strokeWidth="1"/>
+      ))}
+      {axes.map((a,i)=>{
+        const [x,y]=pt(angleFor(i),r);
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="var(--border-soft)" strokeWidth="1"/>;
+      })}
+      <polygon points={dataPath} fill="var(--blood)" fillOpacity="0.35" stroke="var(--blood-bright)" strokeWidth="2"/>
+      {dataPoints.map((p,i)=>(<circle key={i} cx={p[0]} cy={p[1]} r="3.2" fill="var(--blood-bright)"/>))}
+      {axes.map((a,i)=>{
+        const [lx,ly]=pt(angleFor(i), r+32);
+        return (
+          <g key={i}>
+            <text x={lx} y={ly-4} textAnchor="middle" fill="var(--dust)" fontSize="9.5" fontFamily="'JetBrains Mono',monospace" letterSpacing="0.03em">{a.label}</text>
+            <text x={lx} y={ly+12} textAnchor="middle" fill="var(--bone)" fontSize="13" fontWeight="700" fontFamily="'JetBrains Mono',monospace">{stats[a.key]}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function RankingSection({myCode}){
+  const sorted = Object.entries(RESULT_TYPES).sort((a,b)=>b[1].baseSurvival-a[1].baseSurvival);
+  const top3 = sorted.slice(0,3);
+  const myRank = sorted.findIndex(([code])=>code===myCode)+1;
+  const myType = RESULT_TYPES[myCode];
+  return (
+    <div className="torn-card mt-6">
+      <p className="psych-tag mb-4">생존 랭킹 — 전체 12종 중 상위 3종</p>
+      {top3.map(([code,t],i)=>(
+        <div className="rank-row" key={code}>
+          <span className="rank-num">{i+1}</span>
+          <span className="rank-name" style={{color: code===myCode?'var(--blood-bright)':'var(--bone)'}}>{t.name}</span>
+          <span className="rank-bar-track"><span className="rank-bar-fill" style={{width:`${t.baseSurvival}%`}}/></span>
+          <span className="font-mono text-xs" style={{color:'var(--dust)',width:'2.2rem',textAlign:'right'}}>{t.baseSurvival}</span>
+        </div>
+      ))}
+      <p className="mt-4 text-sm leading-relaxed" style={{color:'var(--dust)'}}>
+        당신의 유형 <b style={{color:'var(--bone)'}}>{myType.name}</b>은(는) 전체 12종 중 생존 랭킹 <b style={{color:'var(--blood-bright)'}}>{myRank}위</b>입니다.
+      </p>
+    </div>
+  );
+}
+
+function ShareCard({type,stats,tally}){
+  return (
+    <div className="share-card">
+      <p className="font-mono text-xs mb-2" style={{color:'var(--blood-bright)',letterSpacing:'0.15em'}}>생존자 기록부</p>
+      <h3 className="font-display" style={{fontSize:'1.8rem',color:'var(--bone)'}}>{type.name}</h3>
+      <p className="text-sm mt-1" style={{color:'var(--dust)'}}>{type.tagline}</p>
+      <div className="mt-4 flex gap-4 flex-wrap font-mono text-xs" style={{color:'var(--dust)'}}>
+        <span>생존 {stats.survival}</span><span>인간성 {stats.humanity}</span><span>카리스마 {stats.charisma}</span>
+        <span>잔혹함 {stats.cruelty}</span><span>신뢰 {stats.trust}</span>
+      </div>
+      <div className="mt-3 flex gap-5 font-mono text-xs">
+        <span style={{color:'var(--blood-bright)'}}>☠ {tally.kills}</span>
+        <span style={{color:'var(--signal)'}}>♥ {tally.saves}</span>
+        <span style={{color:'var(--dust)'}}>곁에 남은 사람 {tally.companionsRemaining}</span>
+      </div>
+    </div>
+  );
+}
+
+function ResultScreen({tally,onRestart,onGotoCompat}){
+  const code = useMemo(()=>classifyCode(tally.xSum,tally.ySum),[tally]);
+  const type = RESULT_TYPES[code];
+  const oppositeType = RESULT_TYPES[oppositeCode(code)];
+  const stats = useMemo(()=>calculateStats(tally),[tally]);
+  const [copyState,setCopyState] = useState(false);
+
+  const handleCopy = useCallback(async()=>{
+    const ok = await copyToClipboard(buildShareText(type));
+    setCopyState(ok ? "복사됨" : "복사 실패");
+    setTimeout(()=>setCopyState(false),2200);
+  },[type]);
+
+  return (
+    <div className="doc-frame">
+      <div className="eyebrow">
+        <span>사건 기록 // 종결</span>
+        <span>기록 {TOTAL_Q} / {TOTAL_Q}</span>
+      </div>
+      <div className="relative">
+      <div className="torn-card">
+        <p className="font-mono text-xs mb-3" style={{color:'var(--blood-bright)',letterSpacing:'0.15em'}}>최종 분류</p>
+        <h2 className="font-display" style={{fontSize:'clamp(2rem,7vw,3rem)',lineHeight:1.1,color:'var(--bone)'}}>{type.name}</h2>
+        <p className="mt-3 leading-relaxed" style={{color:'var(--dust)',maxWidth:'56ch'}}>{type.tagline}</p>
+
+        <div className="mt-8 grid gap-6 items-center grid-cols-1 sm:grid-cols-[minmax(0,220px)_1fr]">
+          <RadarChart stats={stats}/>
+          <div className="flex flex-col gap-3">
+            <div className="stat-tile">
+              <span className="stat-num" style={{color:'var(--blood-bright)'}}>{tally.kills}</span>
+              <span className="stat-label">당신이 죽인 사람</span>
+            </div>
+            <div className="stat-tile">
+              <span className="stat-num" style={{color:'var(--signal)'}}>{tally.saves}</span>
+              <span className="stat-label">당신이 구한 사람</span>
+            </div>
+            <div className="stat-tile">
+              <span className="stat-num" style={{color:'var(--bone)'}}>{tally.companionsRemaining}</span>
+              <span className="stat-label">당신 곁에 남은 사람</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="opposite-box">
+          <p className="psych-tag mb-2">당신과 정반대의 생존자</p>
+          <p style={{color:'var(--bone)',fontWeight:700}}>{oppositeType.name}</p>
+          <p className="text-sm mt-1" style={{color:'var(--dust)'}}>{oppositeType.tagline}</p>
+          <p className="text-sm mt-2" style={{color:'var(--dust)',opacity:0.8}}>이 유형인 사람에게 링크를 보내 서로의 결과를 비교해보세요.</p>
+        </div>
+
+        <p className="psych-tag mt-8 mb-2">최후 — 마지막 기록</p>
+        <p className="epilogue">{type.epilogue}</p>
+
+        <div className="mt-8 flex gap-3 flex-wrap">
+          <button className="report-btn" onClick={onRestart}>기록 다시 시작</button>
+          <button className="report-btn outline" onClick={handleCopy}>{copyState || "결과 텍스트 복사"}</button>
+          <button className="report-btn outline" onClick={onGotoCompat}>생존 궁합 테스트 →</button>
+        </div>
+      </div>
+      <span className="stamp">판정 완료</span>
+      </div>
+
+      <RankingSection myCode={code}/>
+      <ShareCard type={type} stats={stats} tally={tally}/>
+    </div>
+  );
+}
+
+function CompatScreen({onBack}){
+  const codes = Object.keys(RESULT_TYPES);
+  const [a,setA] = useState(codes[0]);
+  const [b,setB] = useState(codes[1]);
+  const result = useMemo(()=>betrayalChance(a,b),[a,b]);
+  const verdict = result<20 ? "천생연분 — 끝까지 함께 갈 조합입니다."
+    : result<50 ? "위태롭지만, 아직은 서로를 믿을 수 있는 사이입니다."
+    : result<80 ? "언젠가 금이 갈 조합입니다. 조심하세요."
+    : "먼저 등에 칼을 꽂을 확률이 더 높은 조합입니다.";
+  return (
+    <div className="doc-frame">
+      <div className="eyebrow">
+        <span>생존자 대조 기록</span>
+        <span>생존 궁합</span>
+      </div>
+      <div className="torn-card">
+        <p className="font-mono text-xs mb-3" style={{color:'var(--blood-bright)',letterSpacing:'0.15em'}}>생존 궁합 진단</p>
+        <h2 className="font-display" style={{fontSize:'clamp(1.6rem,6vw,2.2rem)',color:'var(--bone)'}}>생존 궁합 테스트</h2>
+        <p className="mt-2 text-sm" style={{color:'var(--dust)'}}>두 사람의 생존자 유형을 골라, 서로를 배신할 확률을 계산해보세요.</p>
+
+        <div className="mt-6 flex flex-col gap-4">
+          <div>
+            <label className="psych-tag block mb-2">첫 번째 생존자</label>
+            <select className="compat-select" value={a} onChange={e=>setA(e.target.value)}>
+              {codes.map(c=>(<option key={c} value={c}>{RESULT_TYPES[c].name}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="psych-tag block mb-2">두 번째 생존자</label>
+            <select className="compat-select" value={b} onChange={e=>setB(e.target.value)}>
+              {codes.map(c=>(<option key={c} value={c}>{RESULT_TYPES[c].name}</option>))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-8 text-center">
+          <div className="stat-num" style={{fontSize:'3rem',color:'var(--blood-bright)'}}>{result}%</div>
+          <div className="stat-label mb-3">서로를 배신할 확률</div>
+          <p className="epilogue" style={{textAlign:'left'}}>{verdict}</p>
+        </div>
+
+        <div className="mt-8">
+          <button className="report-btn outline" onClick={onBack}>← 결과로 돌아가기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   APP
+   ========================================================================= */
+
+function App(){
+  const [screen,setScreen] = useState("intro");
+  const [qIndex,setQIndex] = useState(0);
+  const [answered,setAnswered] = useState([]);
+  const [toast,setToast] = useState(null);
+
+  const tally = useMemo(()=>tallyAnswers(answered),[answered]);
+  const bg = useMemo(()=>backgroundColor(tally.xSum),[tally.xSum]);
+  const vignetteOpacity = useMemo(()=>clamp((tally.xSum+MAX_AXIS)/(MAX_AXIS*2),0,1)*0.6+0.15,[tally.xSum]);
+
+  useEffect(()=>{
+    if(!toast) return;
+    const t = setTimeout(()=>setToast(null),3500);
+    return ()=>clearTimeout(t);
+  },[toast]);
+
+  const handleAnswer = useCallback((choice,timedOut)=>{
+    const next=[...answered,choice];
+    setAnswered(next);
+    if(choice.deathStat) setToast(choice.deathStat);
+    else if(timedOut) setToast("⏱ 시간 초과 — 몸이 먼저 반응했다.");
+    if(qIndex+1>=TOTAL_Q){ setScreen("result"); }
+    else{ setQIndex(qIndex+1); }
+  },[answered,qIndex]);
+
+  const handleRestart = useCallback(()=>{
+    setAnswered([]); setQIndex(0); setScreen("intro");
+  },[]);
+
+  return (
+    <React.Fragment>
+      <div className="grain"/>
+      <div className="vignette" style={{opacity:vignetteOpacity}}/>
+      <div className="stage" style={{backgroundColor: screen==="intro" ? backgroundColor(0) : bg}}>
+        {screen==="intro" && <IntroScreen onStart={()=>setScreen("quiz")}/>}
+        {screen==="quiz" && <QuizScreen index={qIndex} answered={answered} onAnswer={handleAnswer}/>}
+        {screen==="result" && <ResultScreen tally={tally} onRestart={handleRestart} onGotoCompat={()=>setScreen("compat")}/>}
+        {screen==="compat" && <CompatScreen onBack={()=>setScreen("result")}/>}
+      </div>
+      {toast && <div className="death-toast" key={toast}>☠ {toast}</div>}
+    </React.Fragment>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App/>);
+</script>
