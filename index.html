@@ -568,16 +568,23 @@ function buildShareText(type){
   return `나는 생존자 기록부에서 "${type.name}" 유형이었다. 당신의 생존 유형은?`;
 }
 
-function getShareUrl(){
+function getShareUrl(encoded){
   const canonical = "https://claude.ai/code/artifact/7f44c8e6-9e22-4636-b55d-b52bc1f49862";
+  let base;
   try{
-    if(typeof window==="undefined" || !window.location) return canonical;
-    return window.location.hostname.endsWith("claudeusercontent.com") ? canonical : window.location.href;
-  }catch(e){ return canonical; }
+    base = (typeof window==="undefined" || !window.location) ? canonical
+      : (window.location.hostname.endsWith("claudeusercontent.com") ? canonical : window.location.href);
+  }catch(e){ base = canonical; }
+  try{
+    const u = new URL(base);
+    u.search=""; u.hash="";
+    if(encoded) u.searchParams.set("a", encoded);
+    return u.toString();
+  }catch(e){ return base; }
 }
 
-async function shareResult(type){
-  const url = getShareUrl();
+async function shareResult(type,encoded){
+  const url = getShareUrl(encoded);
   const text = buildShareText(type);
   if(typeof navigator!=="undefined" && navigator.share){
     try{ await navigator.share({title:"생존자 기록부", text, url}); return "shared"; }
@@ -585,6 +592,73 @@ async function shareResult(type){
   }
   const ok = await copyToClipboard(`${text} ${url}`);
   return ok ? "copied" : "failed";
+}
+
+/* =========================================================================
+   SHARE-LINK STATE — encode/decode the answer sequence into ?a=<code> so a
+   shared link reproduces the exact same ending without replaying the quiz.
+   Each answer is stored as the chosen option's index (0-3) within whichever
+   choice pool was active at that step; decoding replays the same
+   joinedParty/leaderMode branching QuizScreen uses to resolve that pool.
+   ========================================================================= */
+
+function pickPoolForStep(index, answeredSoFar){
+  const joinedParty = answeredSoFar.some(c=>c.joinedParty);
+  const leaderMode = answeredSoFar.some(c=>c.leaderMode);
+  const q = QUESTIONS[index];
+  return (leaderMode && q.choicesLeader) ? q.choicesLeader
+    : (!joinedParty && q.choicesSolo) ? q.choicesSolo
+    : q.choices;
+}
+
+function replayFromIndices(indices){
+  const answered = [];
+  for(let i=0;i<TOTAL_Q;i++){
+    const pool = pickPoolForStep(i, answered);
+    const idx = clamp(indices[i]||0, 0, pool.length-1);
+    answered.push(pool[idx]);
+  }
+  return answered;
+}
+
+function encodeAnswerState(answered,specialEnding){
+  const bits=[];
+  for(let i=0;i<TOTAL_Q;i++){
+    const pool = pickPoolForStep(i, answered.slice(0,i));
+    const idx = Math.max(0, pool.indexOf(answered[i]));
+    bits.push(idx&1, (idx>>1)&1);
+  }
+  bits.push(specialEnding==="INDECISIVE" ? 1 : 0);
+  while(bits.length%8!==0) bits.push(0);
+  const bytes = new Uint8Array(bits.length/8);
+  for(let i=0;i<bits.length;i++){ if(bits[i]) bytes[i>>3] |= (1<<(i&7)); }
+  let binStr="";
+  for(let i=0;i<bytes.length;i++) binStr+=String.fromCharCode(bytes[i]);
+  return btoa(binStr).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+
+function decodeAnswerState(str){
+  try{
+    let s = str.replace(/-/g,"+").replace(/_/g,"/");
+    while(s.length%4) s+="=";
+    const binStr = atob(s);
+    const bytes=[];
+    for(let i=0;i<binStr.length;i++) bytes.push(binStr.charCodeAt(i));
+    const bits=[];
+    bytes.forEach(b=>{ for(let k=0;k<8;k++) bits.push((b>>k)&1); });
+    const indices=[];
+    for(let i=0;i<TOTAL_Q;i++) indices.push((bits[i*2]||0) | ((bits[i*2+1]||0)<<1));
+    const specialBit = bits[TOTAL_Q*2] || 0;
+    return { answered: replayFromIndices(indices), specialEnding: specialBit ? "INDECISIVE" : null };
+  }catch(e){ return null; }
+}
+
+function getInitialStateFromUrl(){
+  try{
+    if(typeof window==="undefined") return null;
+    const a = new URLSearchParams(window.location.search).get("a");
+    return a ? decodeAnswerState(a) : null;
+  }catch(e){ return null; }
 }
 
 /* =========================================================================
@@ -853,7 +927,7 @@ function ShareCard({type,stats,tally}){
   );
 }
 
-function ResultScreen({tally,onRestart,onGotoCompat,specialEnding}){
+function ResultScreen({tally,answered,onRestart,onGotoCompat,specialEnding}){
   const computedCode = useMemo(()=>classifyCode(tally.xSum,tally.ySum),[tally]);
   const code = specialEnding || computedCode;
   const type = RESULT_TYPES[code];
@@ -862,12 +936,13 @@ function ResultScreen({tally,onRestart,onGotoCompat,specialEnding}){
   const [copyState,setCopyState] = useState(false);
 
   const handleShare = useCallback(async()=>{
-    const result = await shareResult(type);
+    const encoded = encodeAnswerState(answered,specialEnding);
+    const result = await shareResult(type,encoded);
     if(result==="shared") setCopyState("공유됨");
     else if(result==="copied") setCopyState("링크 복사됨");
     else if(result==="failed") setCopyState("복사 실패");
     if(result) setTimeout(()=>setCopyState(false),2200);
-  },[type]);
+  },[type,answered,specialEnding]);
 
   return (
     <div className="doc-frame">
@@ -979,11 +1054,12 @@ function CompatScreen({onBack}){
    ========================================================================= */
 
 function App(){
-  const [screen,setScreen] = useState("intro");
+  const [initialUrlState] = useState(()=>getInitialStateFromUrl());
+  const [screen,setScreen] = useState(()=> initialUrlState ? "result" : "intro");
   const [qIndex,setQIndex] = useState(0);
-  const [answered,setAnswered] = useState([]);
+  const [answered,setAnswered] = useState(()=> initialUrlState ? initialUrlState.answered : []);
   const [toast,setToast] = useState(null);
-  const [specialEnding,setSpecialEnding] = useState(null);
+  const [specialEnding,setSpecialEnding] = useState(()=> initialUrlState ? initialUrlState.specialEnding : null);
 
   const tally = useMemo(()=>tallyAnswers(answered),[answered]);
   const bg = useMemo(()=>backgroundColor(tally.xSum),[tally.xSum]);
@@ -1009,6 +1085,7 @@ function App(){
   },[answered,qIndex]);
 
   const handleRestart = useCallback(()=>{
+    try{ window.history.replaceState(null,"",window.location.pathname); }catch(e){}
     setAnswered([]); setQIndex(0); setScreen("intro"); setSpecialEnding(null);
   },[]);
 
@@ -1019,7 +1096,7 @@ function App(){
       <div className="stage" style={{backgroundColor: screen==="intro" ? backgroundColor(0) : bg}}>
         {screen==="intro" && <IntroScreen onStart={()=>setScreen("quiz")}/>}
         {screen==="quiz" && <QuizScreen index={qIndex} answered={answered} onAnswer={handleAnswer}/>}
-        {screen==="result" && <ResultScreen tally={tally} onRestart={handleRestart} onGotoCompat={()=>setScreen("compat")} specialEnding={specialEnding}/>}
+        {screen==="result" && <ResultScreen tally={tally} answered={answered} onRestart={handleRestart} onGotoCompat={()=>setScreen("compat")} specialEnding={specialEnding}/>}
         {screen==="compat" && <CompatScreen onBack={()=>setScreen("result")}/>}
       </div>
       {toast && <div className="death-toast" key={toast}>☠ {toast}</div>}
