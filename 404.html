@@ -582,9 +582,12 @@ function buildShareText(type){
 }
 
 /* =========================================================================
-   SHARE-LINK STATE — a shared link only carries the final result type as a
-   short readable slug (e.g. .../architect), not the individual answers.
-   Loading such a link renders that type's representative result directly.
+   SHARE-LINK STATE — a shared link looks like .../architect.qmqqKg.
+   The word (from CODE_TO_SLUG) is a readable label for the result type;
+   the part after "." is an exact answer-index encoding (decoded via
+   replayFromIndices, which replays the same joinedParty/leaderMode
+   branching QuizScreen uses) so a shared link reproduces the exact same
+   ending, stats, and radar chart — not just a representative one.
    ========================================================================= */
 
 const CODE_TO_SLUG = {
@@ -596,30 +599,24 @@ const CODE_TO_SLUG = {
 };
 const SLUG_TO_CODE = Object.fromEntries(Object.entries(CODE_TO_SLUG).map(([code,slug])=>[slug,code]));
 
-function getSlugFromPath(){
-  const segs = window.location.pathname.split("/").filter(s=>s.length>0);
-  const last = segs[segs.length-1];
-  return (last && last!=="index.html") ? last : null;
-}
-
 function getBasePath(){
   const segs = window.location.pathname.split("/").filter(s=>s.length>0);
   const last = segs[segs.length-1];
-  if(last==="index.html" || SLUG_TO_CODE.hasOwnProperty(last)) segs.pop();
+  if(last && (last==="index.html" || last.indexOf(".")!==-1 || SLUG_TO_CODE.hasOwnProperty(last))) segs.pop();
   return "/"+segs.join("/")+(segs.length?"/":"");
 }
 
-function getShareUrl(slug){
+function getShareUrl(slug,code){
   const canonical = "https://claude.ai/code/artifact/7f44c8e6-9e22-4636-b55d-b52bc1f49862";
   try{
     if(typeof window==="undefined" || !window.location) return canonical;
     if(window.location.hostname.endsWith("claudeusercontent.com")) return canonical;
-    return window.location.origin + getBasePath() + (slug || "");
+    return window.location.origin + getBasePath() + (slug||"") + (code ? ("."+code) : "");
   }catch(e){ return canonical; }
 }
 
-async function shareResult(type,slug){
-  const url = getShareUrl(slug);
+async function shareResult(type,slug,code){
+  const url = getShareUrl(slug,code);
   const text = buildShareText(type);
   if(typeof navigator!=="undefined" && navigator.share){
     try{ await navigator.share({title:"생존자 기록부", text, url}); return "shared"; }
@@ -629,8 +626,59 @@ async function shareResult(type,slug){
   return ok ? "copied" : "failed";
 }
 
-// 두 지표(x,y)를 각 코드의 밴드 안쪽 대표값으로 채운 가상 결과를 만들어,
-// 실제 채점 로직(calculateStats/classifyCode)을 그대로 재사용한다.
+function pickPoolForStep(index, answeredSoFar){
+  const joinedParty = answeredSoFar.some(c=>c.joinedParty);
+  const leaderMode = answeredSoFar.some(c=>c.leaderMode);
+  const q = QUESTIONS[index];
+  return (leaderMode && q.choicesLeader) ? q.choicesLeader
+    : (!joinedParty && q.choicesSolo) ? q.choicesSolo
+    : q.choices;
+}
+
+function replayFromIndices(indices){
+  const answered = [];
+  for(let i=0;i<TOTAL_Q;i++){
+    const pool = pickPoolForStep(i, answered);
+    const idx = clamp(indices[i]||0, 0, pool.length-1);
+    answered.push(pool[idx]);
+  }
+  return answered;
+}
+
+function encodeAnswerState(answered,specialEnding){
+  const bits=[];
+  for(let i=0;i<TOTAL_Q;i++){
+    const pool = pickPoolForStep(i, answered.slice(0,i));
+    const idx = Math.max(0, pool.indexOf(answered[i]));
+    bits.push(idx&1, (idx>>1)&1);
+  }
+  bits.push(specialEnding==="INDECISIVE" ? 1 : 0);
+  while(bits.length%8!==0) bits.push(0);
+  const bytes = new Uint8Array(bits.length/8);
+  for(let i=0;i<bits.length;i++){ if(bits[i]) bytes[i>>3] |= (1<<(i&7)); }
+  let binStr="";
+  for(let i=0;i<bytes.length;i++) binStr+=String.fromCharCode(bytes[i]);
+  return btoa(binStr).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+
+function decodeAnswerState(str){
+  try{
+    let s = str.replace(/-/g,"+").replace(/_/g,"/");
+    while(s.length%4) s+="=";
+    const binStr = atob(s);
+    const bytes=[];
+    for(let i=0;i<binStr.length;i++) bytes.push(binStr.charCodeAt(i));
+    const bits=[];
+    bytes.forEach(b=>{ for(let k=0;k<8;k++) bits.push((b>>k)&1); });
+    const indices=[];
+    for(let i=0;i<TOTAL_Q;i++) indices.push((bits[i*2]||0) | ((bits[i*2+1]||0)<<1));
+    const specialBit = bits[TOTAL_Q*2] || 0;
+    return { answered: replayFromIndices(indices), specialEnding: specialBit ? "INDECISIVE" : null };
+  }catch(e){ return null; }
+}
+
+// 두 지표(x,y)를 각 코드의 밴드 안쪽 대표값으로 채운 가상 결과 — 정확한 코드가
+// 없는 이전 형태의 슬러그 전용 링크를 위한 하위호환 대체값
 function syntheticTallyForCode(code){
   const xRep = {A:-15,B:-4,C:4,D:15}[code[0]] || 0;
   const yRep = {1:-12,2:0,3:12}[code[1]] || 0;
@@ -640,13 +688,22 @@ function syntheticTallyForCode(code){
 function getInitialStateFromUrl(){
   try{
     if(typeof window==="undefined") return null;
-    const slug = getSlugFromPath();
-    const code = slug && SLUG_TO_CODE[slug];
+    const segs = window.location.pathname.split("/").filter(s=>s.length>0);
+    const last = segs[segs.length-1];
+    if(!last || last==="index.html") return null;
+
+    const dot = last.indexOf(".");
+    if(dot!==-1){
+      return decodeAnswerState(last.slice(dot+1));
+    }
+
+    const code = SLUG_TO_CODE[last];
     if(!code) return null;
     if(code==="INDECISIVE"){
-      return { tally:{xSum:0,ySum:0,kills:0,saves:0,companionBond:60,companionsRemaining:0}, specialEnding:"INDECISIVE" };
+      return { answered:[{x:0,y:0,kill:0,save:0,companionBond:60,companionsRemaining:0}], specialEnding:"INDECISIVE" };
     }
-    return { tally:syntheticTallyForCode(code), specialEnding:null };
+    const t = syntheticTallyForCode(code);
+    return { answered:[{x:t.xSum,y:t.ySum,kill:0,save:0,companionBond:t.companionBond,companionsRemaining:t.companionsRemaining}], specialEnding:null };
   }catch(e){ return null; }
 }
 
@@ -916,7 +973,7 @@ function ShareCard({type,stats,tally}){
   );
 }
 
-function ResultScreen({tally,onRestart,onGotoCompat,specialEnding}){
+function ResultScreen({tally,answered,onRestart,onGotoCompat,specialEnding}){
   const computedCode = useMemo(()=>classifyCode(tally.xSum,tally.ySum),[tally]);
   const code = specialEnding || computedCode;
   const type = RESULT_TYPES[code];
@@ -925,12 +982,13 @@ function ResultScreen({tally,onRestart,onGotoCompat,specialEnding}){
   const [copyState,setCopyState] = useState(false);
 
   const handleShare = useCallback(async()=>{
-    const result = await shareResult(type,CODE_TO_SLUG[code]);
+    const encoded = encodeAnswerState(answered,specialEnding);
+    const result = await shareResult(type,CODE_TO_SLUG[code],encoded);
     if(result==="shared") setCopyState("공유됨");
     else if(result==="copied") setCopyState("링크 복사됨");
     else if(result==="failed") setCopyState("복사 실패");
     if(result) setTimeout(()=>setCopyState(false),2200);
-  },[type,code]);
+  },[type,code,answered,specialEnding]);
 
   return (
     <div className="doc-frame">
@@ -1045,11 +1103,11 @@ function App(){
   const [initialUrlState] = useState(()=>getInitialStateFromUrl());
   const [screen,setScreen] = useState(()=> initialUrlState ? "result" : "intro");
   const [qIndex,setQIndex] = useState(0);
-  const [answered,setAnswered] = useState([]);
+  const [answered,setAnswered] = useState(()=> initialUrlState ? initialUrlState.answered : []);
   const [toast,setToast] = useState(null);
   const [specialEnding,setSpecialEnding] = useState(()=> initialUrlState ? initialUrlState.specialEnding : null);
 
-  const tally = useMemo(()=> initialUrlState ? initialUrlState.tally : tallyAnswers(answered),[answered,initialUrlState]);
+  const tally = useMemo(()=>tallyAnswers(answered),[answered]);
   const bg = useMemo(()=>backgroundColor(tally.xSum),[tally.xSum]);
   const vignetteOpacity = useMemo(()=>clamp((tally.xSum+MAX_AXIS)/(MAX_AXIS*2),0,1)*0.6+0.15,[tally.xSum]);
 
@@ -1084,7 +1142,7 @@ function App(){
       <div className="stage" style={{backgroundColor: screen==="intro" ? backgroundColor(0) : bg}}>
         {screen==="intro" && <IntroScreen onStart={()=>setScreen("quiz")}/>}
         {screen==="quiz" && <QuizScreen index={qIndex} answered={answered} onAnswer={handleAnswer}/>}
-        {screen==="result" && <ResultScreen tally={tally} onRestart={handleRestart} onGotoCompat={()=>setScreen("compat")} specialEnding={specialEnding}/>}
+        {screen==="result" && <ResultScreen tally={tally} answered={answered} onRestart={handleRestart} onGotoCompat={()=>setScreen("compat")} specialEnding={specialEnding}/>}
         {screen==="compat" && <CompatScreen onBack={()=>setScreen("result")}/>}
       </div>
       {toast && <div className="death-toast" key={toast}>☠ {toast}</div>}
