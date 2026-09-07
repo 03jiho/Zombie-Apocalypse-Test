@@ -207,6 +207,19 @@ h1,h2,h3{text-wrap:balance;}
   .vignette{transition-duration:0.01s;}
   *{animation-duration:0.01s !important;}
 }
+
+/* 모바일에서는 장식용 요소(진행 경로, 큰 삽화)의 높이를 줄여
+   선택지가 스크롤 없이 최대한 화면에 들어오게 한다 */
+@media (max-width:480px){
+  .stage{padding:0.75rem 0.6rem 1.5rem;}
+  .eyebrow{margin-bottom:0.9rem;padding-bottom:0.6rem;}
+  .torn-card{padding:1.4rem 1rem 1.6rem;}
+  .waypoint-wrap{display:none;}
+  .scene-art{aspect-ratio:2.2/1;margin-bottom:0.9rem;}
+  .choice-btn{padding:0.8rem 0.85rem;gap:0.7rem;}
+  .choices-wrap{margin-top:1.1rem !important;gap:0.55rem !important;}
+  .warn-banner{margin-bottom:0.9rem;}
+}
 </style>
 </head>
 <body>
@@ -813,7 +826,7 @@ function QuizScreen({index,answered,onAnswer}){
       <div className="eyebrow">
         <span>기록 {String(index+1).padStart(2,'0')} / {String(TOTAL_Q).padStart(2,'0')}</span>
       </div>
-      <div className="mb-6"><WaypointTrail answered={answered}/></div>
+      <div className="mb-6 waypoint-wrap"><WaypointTrail answered={answered}/></div>
       <div className="torn-card">
         {q.timer &&
           <div className="flex items-center gap-3 mb-5">
@@ -828,7 +841,7 @@ function QuizScreen({index,answered,onAnswer}){
         {QUESTION_ART[artKey] &&
           <img className="scene-art" src={QUESTION_ART[artKey]} alt={`기록 ${String(index+1).padStart(2,'0')} 장면`}/>}
         <p className="leading-relaxed" style={{fontSize:'1.05rem',color:'var(--bone)'}}>{situationText}</p>
-        <div className={`mt-7 flex flex-col gap-3 ${hoverArmed ? "" : "choice-list-guard"}`}>
+        <div className={`mt-7 choices-wrap flex flex-col gap-3 ${hoverArmed ? "" : "choice-list-guard"}`}>
           {displayChoices.map((c,i)=>(
             <button key={`${index}-${i}`} className="choice-btn" onClick={(e)=>{ e.currentTarget.blur(); onAnswer(c,false); }}>
               <span className="choice-idx">{String.fromCharCode(65+i)}</span>
