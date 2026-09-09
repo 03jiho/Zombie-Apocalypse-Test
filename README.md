@@ -2,7 +2,9 @@
 
 죽은 자들이 다시 일어선 도시에서, 15개의 상황 속 당신의 선택을 추적하는 인터랙티브 성격 테스트입니다.
 
-🔗 **플레이하기**: https://03jiho.github.io/Zombie-Apocalypse-Test/
+🔗 **플레이하기**
+- Vercel: https://zombie-apocalypse-test.vercel.app
+- GitHub Pages: https://03jiho.github.io/Zombie-Apocalypse-Test/
 
 ## 기능
 
